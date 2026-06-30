@@ -44,20 +44,26 @@ def place_orders(
     paths: Paths,
     dry_run: bool = False,
     mode: str = "open",
+    skip_detail: str = "dry_run",
 ) -> list[ExecutionResult]:
+    """
+    Submit sized orders as bracket/market orders. When `dry_run` is True, nothing
+    is submitted and each order is logged as skipped with `skip_detail` as the
+    reason (e.g. "dry_run" or "market_closed").
+    """
     results: list[ExecutionResult] = []
     for order in sized_orders:
         if dry_run:
-            log.info("[yellow]DRY-RUN[/yellow] (%s) would place %s %s x%s",
-                     mode, order.action, order.ticker, order.qty)
+            log.info("[yellow]SKIP[/yellow] (%s/%s) would place %s %s x%s",
+                     mode, skip_detail, order.action, order.ticker, order.qty)
             log_trade_event(
                 paths.trade_log_csv, mode=mode, event="skipped", ticker=order.ticker,
                 side=order.action, qty=order.qty, entry_price=order.entry_price,
                 stop_price=order.stop_price, target_price=order.target_price,
-                notional=order.notional, detail="dry_run",
+                notional=order.notional, detail=skip_detail,
             )
             results.append(ExecutionResult(order.ticker, order.action, order.qty,
-                                           "skipped", None, "dry_run",
+                                           "skipped", None, skip_detail,
                                            client_order_id=order.decision_id,
                                            decision_id=order.decision_id))
             continue

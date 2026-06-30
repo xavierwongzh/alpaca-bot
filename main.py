@@ -75,6 +75,19 @@ def main() -> int:
     init_trade_log(cfg.paths.trade_log_csv)
     log.info("Run mode: [bold]%s[/bold]%s", mode, " (dry-run)" if dry_run else "")
 
+    # --- market-open safeguard ---
+    # GitHub's scheduler can fire on holidays/early closes. When the market is
+    # closed we still run the full read-only analysis (and evaluation), but submit
+    # NO orders — so we never fire orders into a closed market. Order placement is
+    # skipped cleanly with reason "market_closed".
+    try:
+        market_open = broker.is_market_open()
+    except Exception as e:  # noqa: BLE001
+        log.warning("Could not read market clock (%s); assuming CLOSED for safety.", e)
+        market_open = False
+    if not market_open:
+        log.warning("[bold yellow]Market is CLOSED[/bold yellow] — analysis only, no orders will be submitted.")
+
     # --- 1. account + positions ---
     account = broker.get_account()
     raw_positions = broker.get_positions()
@@ -171,13 +184,18 @@ def main() -> int:
     )
     rejected = list(rejected) + midday_dropped
 
-    exec_results = place_orders(broker, sized, cfg.paths, dry_run=dry_run, mode=mode)
+    # Submit only when not a dry-run AND the market is open. Otherwise skip
+    # cleanly, labelling why ("dry_run" vs "market_closed").
+    place_live = (not dry_run) and market_open
+    skip_detail = "dry_run" if dry_run else ("market_closed" if not market_open else "dry_run")
+    exec_results = place_orders(broker, sized, cfg.paths, dry_run=not place_live,
+                                mode=mode, skip_detail=skip_detail)
 
     # --- persist decision records (the dashboard drill-down) ---
-    # Only persist when orders are actually placed (not dry-run), so the records
-    # log reflects real trades joinable by client_order_id.
+    # Only persist when orders were actually placed live, so the records log
+    # reflects real trades joinable by client_order_id.
     decision_records = []
-    if not dry_run and sized:
+    if place_live and sized:
         decision_records = build_decision_records(
             sized_orders=sized,
             exec_results=exec_results,
@@ -229,6 +247,7 @@ def main() -> int:
         "rejected": [r.__dict__ for r in rejected],
         "alerts": [a.as_dict() for a in alerts],
         "halt": halt,
+        "market_open": market_open,
         "dry_run": dry_run,
     }
     snap_path = write_snapshot(cfg.paths.snapshots_dir, snapshot)
