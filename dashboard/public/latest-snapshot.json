@@ -1,0 +1,171 @@
+{
+  "timestamp": "2026-06-30T19:24:51.962344+00:00",
+  "mode": "midday",
+  "account": {
+    "equity": 10000.0,
+    "cash": 10000.0,
+    "buying_power": 40000.0,
+    "day_pnl": 0.0,
+    "day_pnl_pct": 0.0
+  },
+  "portfolio": {
+    "equity": 10000.0,
+    "cash": 10000.0,
+    "invested": 0.0,
+    "cash_pct": 1.0,
+    "invested_pct": 0.0,
+    "total_unrealized_pl": 0.0,
+    "largest_position_weight": 0.0,
+    "num_positions": 0,
+    "positions": []
+  },
+  "macro": {
+    "vix": 16.45,
+    "vix_change_5d": -0.156,
+    "regime": "normal"
+  },
+  "market_summary": "Market sentiment is cautiously optimistic as the VIX remains low at 16.45, indicating a normal regime with reduced volatility. Tech stocks are showing signs of recovery, particularly AMD, which is trading above its 50-day moving average and has a strong RSI of 65.4, suggesting bullish momentum. Conversely, Apple, Amazon, and Microsoft are all trading below their 50-day moving averages, indicating potential weakness, with AAPL and AMZN both experiencing RSI levels around 45, suggesting they may be oversold. Notably, Intel is also performing well, trading above its 50-day moving average with a strong RSI of 63.6, indicating continued strength in the semiconductor sector. Overall, while some tech stocks face headwinds, others like AMD and INTC are positioned for potential gains.",
+  "flow_signals": [
+    {
+      "ticker": "NVDA",
+      "direction": "bullish",
+      "composite_score": 70.0,
+      "top_contract": {
+        "symbol": "NVDA260717C00175000",
+        "type": "call",
+        "strike": 175.0,
+        "expiry": "2026-07-17"
+      },
+      "vol_oi_ratio": 4.0,
+      "notional": 7382000.0,
+      "aggression": 0.75,
+      "call_put_notional_ratio": 7382000.0,
+      "iv": 0.52,
+      "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+    }
+  ],
+  "decisions": [
+    {
+      "action": "buy",
+      "ticker": "NVDA",
+      "side": "long",
+      "proposed_weight": 0.1,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.72,
+      "rationale": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
+      "id": "cb394060e25143bdb80eb932fb0ceb77"
+    }
+  ],
+  "decision_records": [
+    {
+      "id": "cb394060e25143bdb80eb932fb0ceb77",
+      "timestamp": "2026-06-30T19:24:51.877741+00:00",
+      "mode": "midday",
+      "model": "gpt-5.5",
+      "reasoning_effort": "medium",
+      "ticker": "NVDA",
+      "action": "buy",
+      "direction": "bullish",
+      "confidence": 0.72,
+      "rationale": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
+      "entry_price": 199.19,
+      "qty": 5,
+      "stop_price": 183.25,
+      "target_price": 239.03,
+      "flow_signal": {
+        "ticker": "NVDA",
+        "direction": "bullish",
+        "composite_score": 70.0,
+        "top_contract": {
+          "symbol": "NVDA260717C00175000",
+          "type": "call",
+          "strike": 175.0,
+          "expiry": "2026-07-17"
+        },
+        "vol_oi_ratio": 4.0,
+        "notional": 7382000.0,
+        "aggression": 0.75,
+        "call_put_notional_ratio": 7382000.0,
+        "iv": 0.52,
+        "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+      },
+      "technicals": {
+        "ticker": "NVDA",
+        "last_price": 199.19,
+        "sma20": 205.7,
+        "sma50": 209.97,
+        "rsi14": 44.4,
+        "high_52w": 235.74,
+        "low_52w": 153.3,
+        "pct_from_52w_low": 0.299,
+        "pct_from_52w_high": -0.155,
+        "avg_dollar_vol_20d": 31356980345.0,
+        "trend": "below_50sma"
+      },
+      "market_context": {
+        "macro": {
+          "vix": 16.45,
+          "vix_change_5d": -0.156,
+          "regime": "normal"
+        },
+        "summary": "Market sentiment is cautiously optimistic as the VIX remains low at 16.45, indicating a normal regime with reduced volatility. Tech stocks are showing signs of recovery, particularly AMD, which is trading above its 50-day moving average and has a strong RSI of 65.4, suggesting bullish momentum. Conversely, Apple, Amazon, and Microsoft are all trading below their 50-day moving averages, indicating potential weakness, with AAPL and AMZN both experiencing RSI levels around 45, suggesting they may be oversold. Notably, Intel is also performing well, trading above its 50-day moving average with a strong RSI of 63.6, indicating continued strength in the semiconductor sector. Overall, while some tech stocks face headwinds, others like AMD and INTC are positioned for potential gains."
+      },
+      "client_order_id": "cb394060e25143bdb80eb932fb0ceb77",
+      "order_status": "placed",
+      "alpaca_order_id": "7357c9c1-6d0e-467d-863e-a6d259f316a3"
+    }
+  ],
+  "cost": {
+    "timestamp": "2026-06-30T19:24:51.878512+00:00",
+    "mode": "midday",
+    "total_cost_usd": 0.042227,
+    "decision_model": "gpt-5.5",
+    "decision_input_tokens": 4059,
+    "decision_cached_tokens": 0,
+    "decision_output_tokens": 716,
+    "decision_reasoning_tokens": 512,
+    "decision_cost_usd": 0.041775,
+    "summary_model": "gpt-4o-mini",
+    "summary_input_tokens": 2362,
+    "summary_output_tokens": 162,
+    "summary_cost_usd": 0.000451
+  },
+  "usage": {
+    "decision": {
+      "label": "decision",
+      "model": "gpt-5.5",
+      "input_tokens": 4059,
+      "cached_input_tokens": 0,
+      "output_tokens": 716,
+      "reasoning_tokens": 512,
+      "cost_usd": 0.041775
+    },
+    "summary": {
+      "label": "summary",
+      "model": "gpt-4o-mini",
+      "input_tokens": 2362,
+      "cached_input_tokens": 0,
+      "output_tokens": 162,
+      "reasoning_tokens": 0,
+      "cost_usd": 0.000451
+    }
+  },
+  "executed": [
+    {
+      "ticker": "NVDA",
+      "action": "buy",
+      "qty": 5,
+      "status": "placed",
+      "order_id": "7357c9c1-6d0e-467d-863e-a6d259f316a3",
+      "detail": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
+      "client_order_id": "cb394060e25143bdb80eb932fb0ceb77",
+      "decision_id": "cb394060e25143bdb80eb932fb0ceb77"
+    }
+  ],
+  "rejected": [],
+  "alerts": [],
+  "halt": false,
+  "market_open": true,
+  "dry_run": false
+}

@@ -1,0 +1,75 @@
+{
+  "generated_at": "2026-06-30T19:24:31.047125+00:00",
+  "thresholds": {
+    "MIN_CONTRACT_VOLUME": 500,
+    "MIN_VOL_OI_RATIO": 2.0,
+    "MIN_NOTIONAL_USD": 500000,
+    "DTE_MIN": 1,
+    "DTE_MAX": 60,
+    "MONEYNESS_MAX": 0.2,
+    "AGGRESSION_BUY": 0.6,
+    "weights": {
+      "vol_oi": 0.35,
+      "notional": 0.3,
+      "aggression": 0.25,
+      "dte": 0.1
+    }
+  },
+  "signals_ranked": [
+    {
+      "ticker": "NVDA",
+      "direction": "bullish",
+      "composite_score": 70.0,
+      "top_contract": {
+        "symbol": "NVDA260717C00175000",
+        "type": "call",
+        "strike": 175.0,
+        "expiry": "2026-07-17"
+      },
+      "vol_oi_ratio": 4.0,
+      "notional": 7382000.0,
+      "aggression": 0.75,
+      "call_put_notional_ratio": 7382000.0,
+      "iv": 0.52,
+      "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+    }
+  ],
+  "qualifying_contracts_ranked": [
+    {
+      "underlying": "NVDA",
+      "symbol": "NVDA260717C00175000",
+      "type": "call",
+      "strike": 175.0,
+      "expiry": "2026-07-17",
+      "dte": 17,
+      "contract_price": 6.55,
+      "volume": 8000.0,
+      "open_interest": 2000.0,
+      "vol_oi_ratio": 4.0,
+      "notional": 5240000.0,
+      "moneyness": -0.1214,
+      "aggression": 0.75,
+      "is_spec_otm_call": false,
+      "implied_volatility": 0.52,
+      "composite_score": 70.0
+    },
+    {
+      "underlying": "NVDA",
+      "symbol": "NVDA260821C00185000",
+      "type": "call",
+      "strike": 185.0,
+      "expiry": "2026-08-21",
+      "dte": 52,
+      "contract_price": 5.1,
+      "volume": 4200.0,
+      "open_interest": 1300.0,
+      "vol_oi_ratio": 3.23,
+      "notional": 2142000.0,
+      "moneyness": -0.0712,
+      "aggression": 0.6,
+      "is_spec_otm_call": false,
+      "implied_volatility": 0.55,
+      "composite_score": 57.7
+    }
+  ]
+}
