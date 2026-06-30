@@ -1,0 +1,115 @@
+name: Daily paper trade
+
+on:
+  schedule:
+    # MORNING (--mode open): 15:00 UTC = ~11am ET in summer / ~10am ET in winter,
+    # safely after the open in both. GitHub cron is UTC and drifts an hour across
+    # US daylight saving, which is why these sit mid-range. The bot's market-
+    # calendar guard handles holidays. Weekdays only.
+    - cron: "0 15 * * 1-5"
+    # MIDDAY (--mode midday): 18:00 UTC = ~2pm ET summer / ~1pm ET winter, early
+    # afternoon before the close.
+    - cron: "0 18 * * 1-5"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Analyze + size but place NO orders"
+        type: boolean
+        default: true
+      mode:
+        description: "Run mode"
+        type: choice
+        options: [open, midday]
+        default: open
+
+permissions:
+  contents: write
+
+jobs:
+  run:
+    name: Morning run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Decide run mode
+        id: mode
+        run: |
+          # Map the triggering schedule -> run mode. The morning cron sets
+          # open; any other schedule is the midday pass.
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            if [ "${{ github.event.schedule }}" = "0 15 * * 1-5" ]; then
+              RUN_MODE=open
+            else
+              RUN_MODE=midday
+            fi
+            RUN_FLAG=""   # scheduled runs are live paper
+            echo "Scheduled run -> mode=$RUN_MODE (live paper, places orders)."
+          else
+            RUN_MODE="${{ inputs.mode }}"
+            if [ "${{ inputs.dry_run }}" = "true" ]; then
+              RUN_FLAG="--dry-run"
+              echo "Manual run -> mode=$RUN_MODE (DRY-RUN, no orders)."
+            else
+              RUN_FLAG=""
+              echo "Manual run -> mode=$RUN_MODE (live paper, places orders)."
+            fi
+          fi
+          echo "mode=$RUN_MODE" >> "$GITHUB_OUTPUT"
+          echo "flag=$RUN_FLAG" >> "$GITHUB_OUTPUT"
+
+      - name: Run the bot
+        env:
+          ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
+          ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          # Hard-pinned to paper; the bot also asserts this at startup.
+          ALPACA_BASE_URL: https://paper-api.alpaca.markets
+        run: python main.py --mode "${{ steps.mode.outputs.mode }}" ${{ steps.mode.outputs.flag }}
+
+      - name: Publish latest artifacts to dashboard/public
+        run: |
+          mkdir -p dashboard/public
+          # Newest portfolio snapshot -> stable filename the frontend can fetch.
+          latest=$(ls -t logs/snapshots/portfolio_*.json 2>/dev/null | head -1 || true)
+          if [ -n "$latest" ]; then
+            cp "$latest" dashboard/public/latest-snapshot.json
+            echo "Published $latest"
+          fi
+          if [ -f data/flow_cache.json ]; then
+            cp data/flow_cache.json dashboard/public/flow-cache.json
+            echo "Published flow cache"
+          fi
+          # Cumulative decision records (JSONL) -> a JSON array the dashboard can
+          # fetch. Keeps the last 500 records to bound the file size.
+          python scripts/publish_decisions.py 500
+          # Evaluation results for the dashboard performance view.
+          if [ -f data/evaluation/latest.json ]; then
+            cp data/evaluation/latest.json dashboard/public/evaluation.json
+            echo "Published evaluation"
+          fi
+
+      - name: Commit published artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f dashboard/public/latest-snapshot.json dashboard/public/flow-cache.json dashboard/public/decisions.json dashboard/public/evaluation.json 2>/dev/null || true
+          # Also persist the raw logs (cost + decisions + closed trades) which are
+          # git-ignored by default — force-add so the record survives across runs.
+          git add -f data/decisions/decisions.jsonl data/cost_log.csv data/closed_trades.jsonl data/evaluation/latest.json 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "No artifact changes to commit."
+          else
+            git commit -m "chore: publish daily snapshot, flow cache + decisions [skip ci]"
+            git push
+          fi

@@ -1,0 +1,34 @@
+# --- secrets (never commit) ---
+.env
+.env.*
+!.env.example
+
+# --- python ---
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# --- logs (runtime) ---
+logs/
+!logs/.gitkeep
+
+# --- generated run artifacts ---
+# The bot writes these at runtime; CI force-adds the published copies. Keep them
+# out of normal commits so local runs don't dirty the tree.
+data/flow_cache.json
+data/cost_log.csv
+data/closed_trades.jsonl
+data/decisions/
+data/evaluation/
+# Published dashboard artifacts (CI regenerates + force-adds these).
+dashboard/public/latest-snapshot.json
+dashboard/public/flow-cache.json
+dashboard/public/decisions.json
+dashboard/public/evaluation.json
+
+# --- os / editor ---
+.DS_Store
+Thumbs.db
+*.bak

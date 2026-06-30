@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: Compile + tests (offline)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Byte-compile all modules
+        run: python -m py_compile config.py main.py src/*.py
+
+      - name: Run test suite (no network, no secrets)
+        run: python -m pytest -q
+
+  dashboard-build:
+    name: Dashboard typecheck + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: dashboard
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (typecheck included)
+        # Dummy keys so route handlers compile; no real Alpaca calls at build time.
+        env:
+          ALPACA_API_KEY: ci-dummy
+          ALPACA_SECRET_KEY: ci-dummy
+        run: npm run build
