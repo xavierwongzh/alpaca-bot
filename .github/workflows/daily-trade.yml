@@ -2,14 +2,16 @@ name: Daily paper trade
 
 on:
   schedule:
-    # MORNING (--mode open): 15:00 UTC = ~11am ET in summer / ~10am ET in winter,
-    # safely after the open in both. GitHub cron is UTC and drifts an hour across
-    # US daylight saving, which is why these sit mid-range. The bot's market-
-    # calendar guard handles holidays. Weekdays only.
-    - cron: "0 15 * * 1-5"
-    # MIDDAY (--mode midday): 18:00 UTC = ~2pm ET summer / ~1pm ET winter, early
-    # afternoon before the close.
-    - cron: "0 18 * * 1-5"
+    # Times are UTC. Set 20 min before the owner's local targets (UTC+8) and off
+    # the top of the hour, since GitHub's scheduler only ever runs LATER (never
+    # earlier) and the top of the hour is congested — so a ~20-min head start
+    # makes runs land around/before the targets. Weekdays only; the bot's
+    # market-open safeguard skips order placement on holidays/closed sessions.
+    #
+    # MORNING (--mode open): 14:40 UTC = 10:40 PM UTC+8 / 10:40 AM ET (market open).
+    - cron: "40 14 * * 1-5"
+    # MIDDAY (--mode midday): 17:40 UTC = 1:40 AM UTC+8 / 12:40 PM ET (market open).
+    - cron: "40 17 * * 1-5"
   workflow_dispatch:
     inputs:
       dry_run:
@@ -48,7 +50,7 @@ jobs:
           # Map the triggering schedule -> run mode. The morning cron sets
           # open; any other schedule is the midday pass.
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            if [ "${{ github.event.schedule }}" = "0 15 * * 1-5" ]; then
+            if [ "${{ github.event.schedule }}" = "40 14 * * 1-5" ]; then
               RUN_MODE=open
             else
               RUN_MODE=midday
