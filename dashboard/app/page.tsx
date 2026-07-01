@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Section from "@/components/Section";
 import StatCard from "@/components/StatCard";
 import EquityChart from "@/components/EquityChart";
-import PositionsTable from "@/components/PositionsTable";
+import PositionsTable, { type Protection } from "@/components/PositionsTable";
 import OrdersTable from "@/components/OrdersTable";
 import DecisionModal from "@/components/DecisionModal";
 import PerformanceView from "@/components/PerformanceView";
@@ -57,6 +57,32 @@ export default function DashboardPage() {
     }
     return m;
   }, [decisions]);
+
+  // Live protective levels per symbol, read from OPEN sell orders/legs (the GTC
+  // OCO the bot attaches: a limit take-profit + a stop stop-loss). A limit leg's
+  // price is the target; a stop leg's trigger is the stop. Only currently-open
+  // legs count, so this reflects the protection actually working right now.
+  const protectionBySymbol = useMemo(() => {
+    const m = new Map<string, Protection>();
+    const openStatuses = new Set([
+      "new", "accepted", "held", "open", "partially_filled", "pending_new", "replaced",
+    ]);
+    const consider = (o: OrderLeg) => {
+      if ((o.side || "").toLowerCase() !== "sell") return;
+      if (!openStatuses.has((o.status || "").toLowerCase())) return;
+      const cur: Protection = m.get(o.symbol) ?? {};
+      const lim = num(o.limit_price);
+      const stp = num(o.stop_price);
+      if (Number.isFinite(lim)) cur.target = lim;
+      if (Number.isFinite(stp)) cur.stop = stp;
+      m.set(o.symbol, cur);
+    };
+    for (const o of orders.data ?? []) {
+      consider(o);
+      for (const child of o.legs ?? []) consider(child);
+    }
+    return m;
+  }, [orders.data]);
 
   const [modal, setModal] = useState<{
     open: boolean;
@@ -187,6 +213,7 @@ export default function DashboardPage() {
         >
           <PositionsTable
             positions={positions.data ?? []}
+            protection={protectionBySymbol}
             onRowClick={openForPosition}
           />
         </Section>

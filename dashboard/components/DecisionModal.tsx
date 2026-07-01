@@ -110,6 +110,21 @@ export default function DecisionModal({ open, title, record, onClose }: Props) {
                 Note: a reasoning model&apos;s raw chain-of-thought isn&apos;t returned by the
                 API; this written rationale plus the signal context below is the explanation.
               </p>
+              {/* Levels alongside the reasoning: entry, stop, target together. */}
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <div className="rounded-lg bg-ink-850 px-3 py-2 text-center">
+                  <div className="text-[10px] uppercase tracking-wider text-gray-500">Entry</div>
+                  <div className="font-mono text-sm text-gray-200">{usd(record.entry_price)}</div>
+                </div>
+                <div className="rounded-lg bg-ink-850 px-3 py-2 text-center">
+                  <div className="text-[10px] uppercase tracking-wider text-gray-500">Stop</div>
+                  <div className="font-mono text-sm text-loss">{usd(record.stop_price)}</div>
+                </div>
+                <div className="rounded-lg bg-ink-850 px-3 py-2 text-center">
+                  <div className="text-[10px] uppercase tracking-wider text-gray-500">Target</div>
+                  <div className="font-mono text-sm text-profit">{usd(record.target_price)}</div>
+                </div>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

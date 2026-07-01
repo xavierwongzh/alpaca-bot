@@ -19,6 +19,29 @@ function legTag(o: OrderLeg, isLeg: boolean): string | null {
   return null;
 }
 
+/**
+ * The order's intended level (not its fill): limit orders show the take-profit
+ * limit, stop orders show the stop trigger, stop-limit shows both, market shows
+ * a dash. This is distinct from Filled Avg (the actual execution price).
+ */
+function OrderPriceCell({ o }: { o: OrderLeg }) {
+  const t = (o.order_type || o.type || "").toLowerCase();
+  const hasStop = t.includes("stop");
+  const hasLimit = t.includes("limit");
+  if (hasStop && hasLimit) {
+    return (
+      <span className="text-gray-300">
+        <span className="text-loss">stop {usd(o.stop_price)}</span>
+        <span className="text-gray-600"> / </span>
+        <span className="text-profit">limit {usd(o.limit_price)}</span>
+      </span>
+    );
+  }
+  if (hasStop) return <span className="text-loss">{usd(o.stop_price)}</span>;
+  if (hasLimit) return <span className="text-profit">{usd(o.limit_price)}</span>;
+  return <span className="text-gray-600">—</span>;
+}
+
 function flatten(orders: OrderLeg[]): Row[] {
   const rows: Row[] = [];
   for (const o of orders) {
@@ -56,7 +79,7 @@ export default function OrdersTable({ orders, onRowClick }: Props) {
 
   return (
     <div className="scroll-thin max-h-[420px] overflow-auto">
-      <table className="w-full min-w-[720px] text-sm">
+      <table className="w-full min-w-[840px] text-sm">
         <thead className="sticky top-0 bg-ink-900">
           <tr className="border-b border-ink-700 text-left text-xs uppercase tracking-wider text-gray-500">
             <th className="py-2 pr-4 font-medium">Symbol</th>
@@ -64,6 +87,7 @@ export default function OrdersTable({ orders, onRowClick }: Props) {
             <th className="py-2 pr-4 font-medium">Type</th>
             <th className="py-2 pr-4 text-right font-medium">Qty</th>
             <th className="py-2 pr-4 font-medium">Status</th>
+            <th className="py-2 pr-4 text-right font-medium">Order Price</th>
             <th className="py-2 pr-4 text-right font-medium">Filled Avg</th>
             <th className="py-2 text-right font-medium">Submitted</th>
           </tr>
@@ -105,6 +129,9 @@ export default function OrdersTable({ orders, onRowClick }: Props) {
                   className={`py-2 pr-4 ${statusStyles[status] ?? "text-gray-300"}`}
                 >
                   {order.status}
+                </td>
+                <td className="py-2 pr-4 text-right">
+                  <OrderPriceCell o={order} />
                 </td>
                 <td className="py-2 pr-4 text-right text-gray-300">
                   {order.filled_avg_price ? usd(order.filled_avg_price) : "—"}

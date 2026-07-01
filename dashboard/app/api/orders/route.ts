@@ -7,7 +7,9 @@ export const revalidate = 0;
 
 export async function GET(): Promise<NextResponse<ApiResponse<OrderLeg[]>>> {
   // status=all includes closed/filled orders; nested=true returns bracket legs
-  // (take-profit / stop-loss) under the parent order's `legs` field.
+  // (take-profit / stop-loss) under the parent order's `legs` field. The raw
+  // Alpaca JSON is passed straight through, so each order/leg keeps its
+  // `limit_price` and `stop_price` (the intended target/stop levels the UI shows).
   const result = await alpacaGet<OrderLeg[]>(
     "/v2/orders?status=all&limit=50&nested=true&direction=desc"
   );
