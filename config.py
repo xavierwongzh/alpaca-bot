@@ -152,12 +152,12 @@ class FlowConfig:
     # Live data source for option contracts (no stub/CSV source — if the selected
     # live source returns nothing, the scanner yields NO signals rather than
     # fabricating any):
-    #   "tradier"  -> Tradier API (needs TRADIER_ACCESS_TOKEN)
-    #   "yfinance" -> free option chains (delayed ~15m, snapshot)
-    #   "auto"     -> Tradier if a token is configured, else yfinance (default)
+    #   "alpaca"  -> Alpaca free INDICATIVE feed (greeks/IV/quotes + OI + volume)
+    #   "tradier" -> Tradier API (needs TRADIER_ACCESS_TOKEN) — backup
+    #   "auto"    -> Alpaca first, fall back to Tradier if a token is set (default)
     source: str = "auto"
-    # Tradier base URL. Sandbox by default (free, delayed); set to
-    # "https://api.tradier.com/v1" for the production (real-time) feed.
+    # Tradier base URL (backup provider). Sandbox by default (free, delayed); set
+    # to "https://api.tradier.com/v1" for the production (real-time) feed.
     tradier_base_url: str = "https://sandbox.tradier.com/v1"
     tradier_timeout_s: float = 8.0
 

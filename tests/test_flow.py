@@ -2,7 +2,7 @@
 Options-flow scanner tests. The scoring/aggregation pipeline is exercised
 deterministically by loading a fixture chain with the offline CSV loader and
 feeding it through rank_contracts (the same pipeline live runs use after
-fetching from Tradier/yfinance).
+fetching from Alpaca or Tradier).
 """
 import dataclasses
 import datetime

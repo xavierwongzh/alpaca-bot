@@ -9,15 +9,16 @@ ALL thresholds live in config.FlowConfig; nothing is hardcoded here.
 
 Live data sources (config.flow.source) — provider-adapter interface, so a paid
 trade-level source can be swapped in later without touching the scorer:
-  - "tradier":  Tradier API option chains (needs TRADIER_ACCESS_TOKEN)
-  - "yfinance": free option chains
-  - "auto":     Tradier if a token is configured, else yfinance (default)
+  - "alpaca":  Alpaca options (free INDICATIVE feed): real greeks/IV + quotes,
+               open interest from the contracts endpoint, day volume from bars
+  - "tradier": Tradier API option chains (needs TRADIER_ACCESS_TOKEN) — backup
+  - "auto":    Alpaca first, fall back to Tradier if a token is configured (default)
 
 There is NO stub/CSV production source: if the selected live source returns
-nothing, the scanner yields zero signals rather than fabricating any. Both free
-feeds (yfinance, the Tradier sandbox) are delayed ~15 min snapshots, not
-tick-level, so the aggression proxy (last vs bid/ask) is an approximation, not
-true sweep data — an accepted free-tier tradeoff.
+nothing, the scanner yields zero signals rather than fabricating any. The free
+feeds (Alpaca INDICATIVE, the Tradier sandbox) are delayed ~15 min snapshots,
+not tick-level, so the aggression proxy (last vs bid/ask) is an approximation,
+not true sweep data — an accepted free-tier tradeoff.
 
 Because the bot trades the underlying equity LONG-ONLY in v1, only bullish
 ticker signals become candidate long entries; bearish signals are passed to the
@@ -237,90 +238,176 @@ def fetch_contracts_csv(path: str, spot_prices: dict[str, float]) -> list[Option
     return out
 
 
-def fetch_contracts_yfinance(
-    tickers: list[str], spot_prices: dict[str, float], cfg: FlowConfig
+def _alpaca_contracts_for(trading: Any, symbol: str, exp_gte: date, exp_lte: date,
+                          lo: float, hi: float, cap: int = 600) -> list:
+    """
+    Paginate the trading contracts endpoint for one underlying, narrowed
+    server-side to the DTE window (exp_gte..exp_lte) and moneyness band
+    (strike lo..hi) so we pull only the relevant slice. Carries open interest.
+    """
+    from alpaca.trading.requests import GetOptionContractsRequest
+    from alpaca.trading.enums import AssetStatus
+
+    out: list = []
+    token: Optional[str] = None
+    while len(out) < cap:
+        resp = trading.get_option_contracts(GetOptionContractsRequest(
+            underlying_symbols=[symbol], status=AssetStatus.ACTIVE,
+            expiration_date_gte=exp_gte, expiration_date_lte=exp_lte,
+            strike_price_gte=str(lo), strike_price_lte=str(hi),
+            limit=500, page_token=token,
+        ))
+        batch = list(getattr(resp, "option_contracts", []) or [])
+        out.extend(batch)
+        token = getattr(resp, "next_page_token", None)
+        if not token or not batch:
+            break
+    return out[:cap]
+
+
+def _alpaca_day_volumes(data: Any, symbols: list[str], today: date,
+                        chunk: int = 100) -> dict[str, float]:
+    """
+    Day volume per contract from daily option bars, batched (one request per
+    `chunk` symbols, not one per contract). Uses the most recent bar in a short
+    lookback so it still returns a value pre-open (yesterday's volume).
+    """
+    from datetime import timedelta
+    from alpaca.data.requests import OptionBarsRequest
+    from alpaca.data.timeframe import TimeFrame
+
+    vols: dict[str, float] = {}
+    start = datetime.now(timezone.utc) - timedelta(days=5)
+    for i in range(0, len(symbols), chunk):
+        batch = symbols[i:i + chunk]
+        try:
+            bars = data.get_option_bars(OptionBarsRequest(
+                symbol_or_symbols=batch, timeframe=TimeFrame.Day, start=start))
+        except Exception as e:  # noqa: BLE001
+            log.debug("Alpaca bars batch failed (%d syms): %s", len(batch), e)
+            continue
+        by_sym = getattr(bars, "data", {}) or {}
+        for sym, rows in by_sym.items():
+            if rows:
+                vols[sym] = _to_float(getattr(rows[-1], "volume", 0))
+    return vols
+
+
+def fetch_contracts_alpaca(
+    tickers: list[str], spot_prices: dict[str, float], cfg: FlowConfig, secrets: Secrets
 ) -> list[OptionContract]:
     """
-    Free options adapter via yfinance. For each ticker, pulls calls+puts for the
-    expiries that fall inside the DTE window, with volume, OI, IV, bid, ask, last,
-    strike and expiry.
+    Alpaca options adapter (PRIMARY). Assembles each contract from three sources:
+      - trading contracts endpoint  -> universe + open interest
+      - INDICATIVE chain snapshot   -> latest quote (bid/ask), last trade, greeks, IV
+      - daily option bars (batched) -> day volume
 
-    Note: yfinance option data is delayed ~15 minutes and is a SNAPSHOT, not
-    tick-level — so the aggression proxy (last vs bid/ask) is weaker than true
-    sweep data. Accepted free-tier tradeoff.
+    The contract set is narrowed server-side to the DTE window + moneyness band,
+    and day volume is fetched in batched bar requests (not one call per contract),
+    so a full watchlist scan stays to a few calls per underlying.
 
-    Per-ticker errors are swallowed so one bad symbol never aborts the scan.
+    Free INDICATIVE feed is delayed ~15 min and a snapshot (no tick-level sweep),
+    so aggression is a proxy. Per-ticker errors are swallowed. OPRA (real-time)
+    is not required and stays gated on the free tier.
     """
+    if not secrets.alpaca_api_key or not secrets.alpaca_secret_key:
+        return []
     try:
-        import yfinance as yf
+        from alpaca.trading.client import TradingClient
+        from alpaca.data.historical.option import OptionHistoricalDataClient
+        from alpaca.data.requests import OptionChainRequest
+        from alpaca.data.enums import OptionsFeed
     except Exception as e:  # noqa: BLE001
-        log.warning("yfinance unavailable for options: %s", e)
+        log.warning("alpaca-py unavailable for options: %s", e)
         return []
 
+    from datetime import timedelta
+    trading = TradingClient(secrets.alpaca_api_key, secrets.alpaca_secret_key, paper=True)
+    data = OptionHistoricalDataClient(secrets.alpaca_api_key, secrets.alpaca_secret_key)
+
     today = datetime.now(timezone.utc).date()
-    out: list[OptionContract] = []
+    exp_gte = today + timedelta(days=cfg.DTE_MIN)
+    exp_lte = today + timedelta(days=cfg.DTE_MAX)
+
+    # --- Phase 1: per underlying, contracts (OI) + chain snapshot (quote/greeks/IV) ---
+    partials: dict[str, dict] = {}   # occ symbol -> contract metadata
+    snapshots: dict[str, Any] = {}   # occ symbol -> snapshot
     ok_tickers = 0
 
     for t in tickers:
         spot = spot_prices.get(t, 0.0)
         if spot <= 0:
             continue
+        lo = round(spot * (1 - cfg.MONEYNESS_MAX), 2)
+        hi = round(spot * (1 + cfg.MONEYNESS_MAX), 2)
         try:
-            tk = yf.Ticker(t)
-            expiries = list(tk.options or [])
+            contracts = _alpaca_contracts_for(trading, t, exp_gte, exp_lte, lo, hi)
         except Exception as e:  # noqa: BLE001
-            log.debug("yfinance expiries failed for %s: %s", t, e)
+            log.debug("Alpaca contracts failed for %s: %s", t, e)
             continue
-
-        # Only expiries inside the DTE window (bounds the number of API calls).
-        wanted: list[tuple[str, "date"]] = []
-        for exp_str in expiries:
-            try:
-                exp = datetime.strptime(exp_str, "%Y-%m-%d").date()
-            except ValueError:
-                continue
-            dte = (exp - today).days
-            if cfg.DTE_MIN <= dte <= cfg.DTE_MAX:
-                wanted.append((exp_str, exp))
-        if not wanted:
+        if not contracts:
             continue
+        try:
+            chain = data.get_option_chain(OptionChainRequest(
+                underlying_symbol=t, feed=OptionsFeed.INDICATIVE,
+                strike_price_gte=lo, strike_price_lte=hi,
+                expiration_date_gte=exp_gte, expiration_date_lte=exp_lte,
+            ))
+        except Exception as e:  # noqa: BLE001
+            log.debug("Alpaca chain failed for %s: %s", t, e)
+            chain = {}
 
         got_any = False
-        for exp_str, exp in wanted:
-            try:
-                chain = tk.option_chain(exp_str)
-            except Exception as e:  # noqa: BLE001
-                log.debug("yfinance chain failed for %s %s: %s", t, exp_str, e)
+        for c in contracts:
+            sym = getattr(c, "symbol", "")
+            exp = getattr(c, "expiration_date", None)
+            if not sym or not isinstance(exp, date):
                 continue
-            for opt_type, df in (("call", chain.calls), ("put", chain.puts)):
-                if df is None or df.empty:
-                    continue
-                for row in df.itertuples(index=False):
-                    last = _to_float(getattr(row, "lastPrice", 0))
-                    vol = _to_float(getattr(row, "volume", 0))
-                    oi = _to_float(getattr(row, "openInterest", 0))
-                    if last <= 0 or vol <= 0 or oi <= 0:
-                        continue
-                    out.append(OptionContract(
-                        underlying=t,
-                        symbol=str(getattr(row, "contractSymbol", "") or ""),
-                        type=opt_type,
-                        strike=_to_float(getattr(row, "strike", 0)),
-                        expiry=exp,
-                        dte=(exp - today).days,
-                        spot=spot,
-                        contract_price=last,
-                        bid=_to_float(getattr(row, "bid", 0)),
-                        ask=_to_float(getattr(row, "ask", 0)),
-                        volume=vol,
-                        open_interest=oi,
-                        implied_volatility=_to_float(getattr(row, "impliedVolatility", 0)) or None,
-                    ))
-                    got_any = True
+            partials[sym] = {
+                "underlying": t,
+                "type": str(getattr(c, "type", "")).split(".")[-1].lower(),
+                "strike": _to_float(getattr(c, "strike_price", 0)),
+                "expiry": exp,
+                "oi": _to_float(getattr(c, "open_interest", 0)),
+                "spot": spot,
+            }
+            snapshots[sym] = chain.get(sym) if hasattr(chain, "get") else None
+            got_any = True
         if got_any:
             ok_tickers += 1
 
-    log.info("yfinance options: %d contracts across %d/%d tickers",
+    # --- Phase 2: batched day volume for every candidate symbol ---
+    volumes = _alpaca_day_volumes(data, list(partials.keys()), today)
+
+    # --- Phase 3: assemble normalized contracts ---
+    out: list[OptionContract] = []
+    for sym, p in partials.items():
+        snap = snapshots.get(sym)
+        bid = ask = last = 0.0
+        iv = None
+        if snap is not None:
+            q = getattr(snap, "latest_quote", None)
+            tr = getattr(snap, "latest_trade", None)
+            if q:
+                bid = _to_float(getattr(q, "bid_price", 0))
+                ask = _to_float(getattr(q, "ask_price", 0))
+            if tr:
+                last = _to_float(getattr(tr, "price", 0))
+            iv = getattr(snap, "implied_volatility", None)
+        if last <= 0 and bid > 0 and ask > 0:
+            last = (bid + ask) / 2.0
+        vol = volumes.get(sym, 0.0)
+        if last <= 0 or vol <= 0 or p["oi"] <= 0 or p["type"] not in ("call", "put"):
+            continue
+        out.append(OptionContract(
+            underlying=p["underlying"], symbol=sym, type=p["type"],
+            strike=p["strike"], expiry=p["expiry"], dte=(p["expiry"] - today).days,
+            spot=p["spot"], contract_price=last, bid=bid, ask=ask,
+            volume=vol, open_interest=p["oi"],
+            implied_volatility=_to_float(iv) or None,
+        ))
+
+    log.info("Alpaca options: %d contracts across %d/%d tickers",
              len(out), ok_tickers, len(tickers))
     return out
 
@@ -502,22 +589,22 @@ def scan_flow(
     rank. Writes the full ranked signal list to data/flow_cache.json and returns
     the top-N FlowSignal objects.
 
-    Provider priority: under "auto", Tradier if a token is configured, else
-    yfinance. If the selected source produces nothing, the scan returns zero
+    Provider priority: under "auto", Alpaca first, then Tradier (if a token is
+    configured). If the selected source produces nothing, the scan returns zero
     signals (no stub fallback) so no new positions open on placeholder data.
     """
     raw: list[OptionContract] = []
     source_used = "none"
 
-    if cfg.source in ("tradier", "auto") and secrets.tradier_access_token:
+    if cfg.source in ("alpaca", "auto"):
+        raw = fetch_contracts_alpaca(tickers, spot_prices, cfg, secrets)
+        if raw:
+            source_used = "alpaca"
+
+    if not raw and cfg.source in ("tradier", "auto") and secrets.tradier_access_token:
         raw = fetch_contracts_tradier(tickers, spot_prices, cfg, secrets.tradier_access_token)
         if raw:
             source_used = "tradier"
-
-    if not raw and cfg.source in ("yfinance", "auto"):
-        raw = fetch_contracts_yfinance(tickers, spot_prices, cfg)
-        if raw:
-            source_used = "yfinance"
 
     log.info("Flow signal source this run: [bold]%s[/bold]", source_used)
     if source_used == "none":

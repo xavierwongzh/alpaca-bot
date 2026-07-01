@@ -223,14 +223,19 @@ noise, scores what's left, and emits the top-N signals. Every threshold lives in
 **Pipeline:**
 
 1. **Fetch** contracts for each watchlist name. Source is `config.flow.source`:
+   - `alpaca` — Alpaca's free **INDICATIVE** options feed (real greeks/IV +
+     bid/ask from the chain snapshot, open interest from the contracts endpoint,
+     day volume from daily bars). Uses the keys you already have; delayed ~15m.
    - `tradier` — Tradier API option chains (needs `TRADIER_ACCESS_TOKEN`;
-     sandbox by default, delayed ~15m)
-   - `yfinance` — free option chains (delayed ~15m, snapshot)
-   - `auto` — Tradier if a token is configured, else yfinance (default)
+     sandbox by default, delayed ~15m) — **backup**
+   - `auto` — Alpaca first, fall back to Tradier if a token is set (default)
 
    There is **no stub/CSV production source**: if the selected live source
    returns nothing, the scan yields zero signals and opens no new flow-driven
-   positions (existing positions are still managed and reconciled).
+   positions (existing positions are still managed and reconciled). Run
+   [`scripts/diagnose_alpaca_options.py`](scripts/diagnose_alpaca_options.py) to
+   confirm what your Alpaca account can pull (contracts/OI, indicative chain,
+   OPRA, historical bars).
 2. **Per-contract filters** (drop noise): `MIN_CONTRACT_VOLUME` (500),
    `MIN_VOL_OI_RATIO` (2.0 — new positioning, not existing), `MIN_NOTIONAL_USD`
    ($500k), `DTE_MIN/DTE_MAX` (1–60), and moneyness within ±20% of spot. OTM
@@ -260,14 +265,14 @@ rationale notes that heavy put buying may be hedging.
   `MIN_NOTIONAL_USD`, `DTE_MIN/MAX`, `MONEYNESS_MAX`, `OTM_CALL_SPEC_MAX`,
   `AGGRESSION_BUY/SELL`, the `W_*` weights and `*_CAP` normalizers,
   `TOP_N_SIGNALS`, `BULLISH_CP_RATIO`, `BEARISH_CP_RATIO`) is in `FlowConfig`.
-- **Providers:** `flow.source` is `tradier`, `yfinance`, or `auto` (default:
-  Tradier if `TRADIER_ACCESS_TOKEN` is set, else yfinance). Point Tradier at
+- **Providers:** `flow.source` is `alpaca`, `tradier`, or `auto` (default:
+  Alpaca first, then Tradier if `TRADIER_ACCESS_TOKEN` is set). Point Tradier at
   production real-time data with `FlowConfig.tradier_base_url`.
 - **Offline testing:** the deterministic tests load a fixture chain via
   `fetch_contracts_csv()` and feed it through `rank_contracts()` — the same
   pipeline live runs use after fetching. There is no CSV *production* source.
 - **Live UOA feed (Phase 2):** add another adapter alongside
-  `fetch_contracts_tradier()` / `fetch_contracts_yfinance()` in `src/flow.py`
+  `fetch_contracts_alpaca()` / `fetch_contracts_tradier()` in `src/flow.py`
   and wire it into `scan_flow`'s dispatch — the scoring, aggregation, and
   decision pipeline are unchanged.
 

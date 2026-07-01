@@ -75,8 +75,8 @@ jobs:
           ALPACA_API_KEY: ${{ secrets.ALPACA_API_KEY }}
           ALPACA_SECRET_KEY: ${{ secrets.ALPACA_SECRET_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          # Optional: primary options-flow provider. If unset, the scanner falls
-          # back to the free yfinance feed automatically.
+          # Optional BACKUP options-flow provider. The primary is Alpaca (uses
+          # the keys above); if this is unset the scanner runs on Alpaca alone.
           TRADIER_ACCESS_TOKEN: ${{ secrets.TRADIER_ACCESS_TOKEN }}
           # Hard-pinned to paper; the bot also asserts this at startup.
           ALPACA_BASE_URL: https://paper-api.alpaca.markets
