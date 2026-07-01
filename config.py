@@ -25,6 +25,8 @@ class Secrets:
     alpaca_secret_key: str
     openai_api_key: str
     alpaca_base_url: str
+    # Optional: options-flow data provider. Absent -> the scanner runs on yfinance.
+    tradier_access_token: str = ""
 
     @classmethod
     def from_env(cls) -> "Secrets":
@@ -36,6 +38,7 @@ class Secrets:
             alpaca_base_url=os.getenv(
                 "ALPACA_BASE_URL", "https://paper-api.alpaca.markets"
             ).strip(),
+            tradier_access_token=os.getenv("TRADIER_ACCESS_TOKEN", "").strip(),
         )
 
 
@@ -146,12 +149,17 @@ class UniverseConfig:
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
 class FlowConfig:
-    # Data source for option contracts:
-    #   "yfinance" -> free live-ish option chains (delayed ~15m, snapshot)
-    #   "csv"      -> data/flow_contracts.csv — STUB/last-resort only
-    #   "auto"     -> yfinance, fall back to csv (default)
+    # Live data source for option contracts (no stub/CSV source — if the selected
+    # live source returns nothing, the scanner yields NO signals rather than
+    # fabricating any):
+    #   "tradier"  -> Tradier API (needs TRADIER_ACCESS_TOKEN)
+    #   "yfinance" -> free option chains (delayed ~15m, snapshot)
+    #   "auto"     -> Tradier if a token is configured, else yfinance (default)
     source: str = "auto"
-    options_feed: str = "indicative"        # (legacy, unused) alpaca feed selector
+    # Tradier base URL. Sandbox by default (free, delayed); set to
+    # "https://api.tradier.com/v1" for the production (real-time) feed.
+    tradier_base_url: str = "https://sandbox.tradier.com/v1"
+    tradier_timeout_s: float = 8.0
 
     # --- Per-contract filters (drop noise before scoring) ---
     MIN_CONTRACT_VOLUME: int = 500          # day volume on the contract

@@ -1,10 +1,18 @@
-"""Options-flow scanner tests (deterministic, offline CSV source)."""
+"""
+Options-flow scanner tests. The scoring/aggregation pipeline is exercised
+deterministically by loading a fixture chain with the offline CSV loader and
+feeding it through rank_contracts (the same pipeline live runs use after
+fetching from Tradier/yfinance).
+"""
 import dataclasses
 import datetime
 
 from config import get_config
-from src.flow import parse_occ_symbol, scan_flow, _aggression, _composite_score, OptionContract
-from tests.conftest import DUMMY_SECRETS, write_contracts_csv
+from src.flow import (
+    parse_occ_symbol, rank_contracts, fetch_contracts_csv,
+    _aggression, _composite_score, OptionContract,
+)
+from tests.conftest import write_contracts_csv
 
 
 def test_parse_occ_symbol():
@@ -37,14 +45,12 @@ def test_scan_directions(tmp_path):
     csv_path = tmp_path / "contracts.csv"
     spots = write_contracts_csv(str(csv_path), today)
 
-    flow_cfg = dataclasses.replace(cfg.flow, source="csv")
     paths = dataclasses.replace(
-        cfg.paths,
-        flow_contracts_csv=str(csv_path),
-        flow_cache_json=str(tmp_path / "flow_cache.json"),
+        cfg.paths, flow_cache_json=str(tmp_path / "flow_cache.json"),
     )
 
-    signals = scan_flow(DUMMY_SECRETS, flow_cfg, paths, list(spots), spots)
+    raw = fetch_contracts_csv(str(csv_path), spots)
+    signals = rank_contracts(raw, cfg.flow, paths)
     direction = {s.ticker: s.direction for s in signals}
 
     assert direction.get("NVDA") == "bullish"
@@ -63,12 +69,10 @@ def test_scan_respects_top_n(tmp_path):
     today = datetime.date.today()
     csv_path = tmp_path / "contracts.csv"
     spots = write_contracts_csv(str(csv_path), today)
-    flow_cfg = dataclasses.replace(cfg.flow, source="csv", TOP_N_SIGNALS=1)
-    paths = dataclasses.replace(
-        cfg.paths, flow_contracts_csv=str(csv_path),
-        flow_cache_json=str(tmp_path / "fc.json"),
-    )
-    signals = scan_flow(DUMMY_SECRETS, flow_cfg, paths, list(spots), spots)
+    flow_cfg = dataclasses.replace(cfg.flow, TOP_N_SIGNALS=1)
+    paths = dataclasses.replace(cfg.paths, flow_cache_json=str(tmp_path / "fc.json"))
+    raw = fetch_contracts_csv(str(csv_path), spots)
+    signals = rank_contracts(raw, flow_cfg, paths)
     assert len(signals) == 1
 
 

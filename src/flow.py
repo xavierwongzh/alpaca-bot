@@ -7,10 +7,17 @@ aggregates to a per-ticker direction, and emits the top-N signals.
 
 ALL thresholds live in config.FlowConfig; nothing is hardcoded here.
 
-Data sources (config.flow.source):
-  - "alpaca": live option-chain snapshots via alpaca-py
-  - "csv":    data/flow_contracts.csv (offline / testing)
-  - "auto":   try alpaca, fall back to csv
+Live data sources (config.flow.source) — provider-adapter interface, so a paid
+trade-level source can be swapped in later without touching the scorer:
+  - "tradier":  Tradier API option chains (needs TRADIER_ACCESS_TOKEN)
+  - "yfinance": free option chains
+  - "auto":     Tradier if a token is configured, else yfinance (default)
+
+There is NO stub/CSV production source: if the selected live source returns
+nothing, the scanner yields zero signals rather than fabricating any. Both free
+feeds (yfinance, the Tradier sandbox) are delayed ~15 min snapshots, not
+tick-level, so the aggression proxy (last vs bid/ask) is an approximation, not
+true sweep data — an accepted free-tier tradeoff.
 
 Because the bot trades the underlying equity LONG-ONLY in v1, only bullish
 ticker signals become candidate long entries; bearish signals are passed to the
@@ -22,7 +29,7 @@ import csv
 import json
 import os
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Any, Optional
 
@@ -190,7 +197,11 @@ def _to_float(v: Any, default: float = 0.0) -> float:
 
 
 def fetch_contracts_csv(path: str, spot_prices: dict[str, float]) -> list[OptionContract]:
-    """Read per-contract rows from a CSV (offline source)."""
+    """
+    Offline per-contract CSV loader. NOT a production `flow.source` — it exists
+    only for deterministic tests and manual inspection. Live runs use the Tradier
+    or yfinance adapters below.
+    """
     if not os.path.exists(path):
         log.warning("Flow contracts CSV not found at %s", path)
         return []
@@ -314,6 +325,113 @@ def fetch_contracts_yfinance(
     return out
 
 
+def fetch_contracts_tradier(
+    tickers: list[str], spot_prices: dict[str, float], cfg: FlowConfig, token: str
+) -> list[OptionContract]:
+    """
+    Tradier option-chain adapter (primary provider). For each ticker, pulls the
+    expirations inside the DTE window, then the chain for each — with bid, ask,
+    last, volume, open interest, option type, strike, and greeks (mid IV).
+
+    Reads the bearer token from the caller (never hardcoded). Base URL defaults to
+    the Tradier sandbox (free, delayed) and is configurable to production via
+    cfg.tradier_base_url. Per-ticker errors are swallowed so one bad symbol never
+    aborts the scan.
+    """
+    if not token:
+        return []
+    try:
+        import requests
+    except Exception as e:  # noqa: BLE001
+        log.warning("requests unavailable for Tradier: %s", e)
+        return []
+
+    base = cfg.tradier_base_url.rstrip("/")
+    timeout = cfg.tradier_timeout_s
+    session = requests.Session()
+    session.headers.update({"Authorization": f"Bearer {token}", "Accept": "application/json"})
+
+    def _get(path: str, params: dict[str, Any]) -> Optional[dict]:
+        r = session.get(f"{base}{path}", params=params, timeout=timeout)
+        r.raise_for_status()
+        return r.json()
+
+    def _as_list(node: Any) -> list:
+        # Tradier collapses single-element arrays to a bare object.
+        if node is None:
+            return []
+        return node if isinstance(node, list) else [node]
+
+    today = datetime.now(timezone.utc).date()
+    out: list[OptionContract] = []
+    ok_tickers = 0
+
+    for t in tickers:
+        spot = spot_prices.get(t, 0.0)
+        if spot <= 0:
+            continue
+        try:
+            exp_json = _get("/markets/options/expirations",
+                            {"symbol": t, "includeAllRoots": "true", "strikes": "false"})
+            expirations = _as_list((exp_json or {}).get("expirations", {}).get("date"))
+        except Exception as e:  # noqa: BLE001
+            log.debug("Tradier expirations failed for %s: %s", t, e)
+            continue
+
+        wanted: list[tuple[str, "date"]] = []
+        for exp_str in expirations:
+            try:
+                exp = datetime.strptime(str(exp_str), "%Y-%m-%d").date()
+            except ValueError:
+                continue
+            if cfg.DTE_MIN <= (exp - today).days <= cfg.DTE_MAX:
+                wanted.append((str(exp_str), exp))
+        if not wanted:
+            continue
+
+        got_any = False
+        for exp_str, exp in wanted:
+            try:
+                chain_json = _get("/markets/options/chains",
+                                  {"symbol": t, "expiration": exp_str, "greeks": "true"})
+                options = _as_list((chain_json or {}).get("options", {}).get("option"))
+            except Exception as e:  # noqa: BLE001
+                log.debug("Tradier chain failed for %s %s: %s", t, exp_str, e)
+                continue
+            for o in options:
+                opt_type = str(o.get("option_type", "")).lower()
+                if opt_type not in ("call", "put"):
+                    continue
+                last = _to_float(o.get("last"))
+                vol = _to_float(o.get("volume"))
+                oi = _to_float(o.get("open_interest"))
+                if last <= 0 or vol <= 0 or oi <= 0:
+                    continue
+                iv = _to_float((o.get("greeks") or {}).get("mid_iv")) or None
+                out.append(OptionContract(
+                    underlying=t,
+                    symbol=str(o.get("symbol", "") or ""),
+                    type=opt_type,
+                    strike=_to_float(o.get("strike")),
+                    expiry=exp,
+                    dte=(exp - today).days,
+                    spot=spot,
+                    contract_price=last,
+                    bid=_to_float(o.get("bid")),
+                    ask=_to_float(o.get("ask")),
+                    volume=vol,
+                    open_interest=oi,
+                    implied_volatility=iv,
+                ))
+                got_any = True
+        if got_any:
+            ok_tickers += 1
+
+    log.info("Tradier options: %d contracts across %d/%d tickers",
+             len(out), ok_tickers, len(tickers))
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Aggregation -> ticker signals
 # ---------------------------------------------------------------------------
@@ -380,30 +498,46 @@ def scan_flow(
     spot_prices: dict[str, float],
 ) -> list[FlowSignal]:
     """
-    Run the full scan: fetch -> filter -> score -> aggregate -> rank.
-    Writes the full ranked signal list to data/flow_cache.json and returns the
-    top-N FlowSignal objects.
+    Run the full scan: fetch (live source) -> filter -> score -> aggregate ->
+    rank. Writes the full ranked signal list to data/flow_cache.json and returns
+    the top-N FlowSignal objects.
+
+    Provider priority: under "auto", Tradier if a token is configured, else
+    yfinance. If the selected source produces nothing, the scan returns zero
+    signals (no stub fallback) so no new positions open on placeholder data.
     """
-    # --- fetch contracts from the configured source ---
-    #   yfinance = free live-ish option chains (default via "auto")
-    #   csv      = last-resort STUB data (must not be trusted)
     raw: list[OptionContract] = []
     source_used = "none"
-    if cfg.source in ("yfinance", "auto"):
+
+    if cfg.source in ("tradier", "auto") and secrets.tradier_access_token:
+        raw = fetch_contracts_tradier(tickers, spot_prices, cfg, secrets.tradier_access_token)
+        if raw:
+            source_used = "tradier"
+
+    if not raw and cfg.source in ("yfinance", "auto"):
         raw = fetch_contracts_yfinance(tickers, spot_prices, cfg)
         if raw:
             source_used = "yfinance"
-    if not raw and cfg.source in ("csv", "auto"):
-        raw = fetch_contracts_csv(paths.flow_contracts_csv, spot_prices)
-        if raw:
-            source_used = "csv"
-            log.warning(
-                "[bold red]FLOW USING STUB CSV DATA[/bold red] — live yfinance options "
-                "fetch returned nothing. These signals are PLACEHOLDER data and must "
-                "NOT be trusted for real decisions."
-            )
-    log.info("Flow signal source this run: [bold]%s[/bold]", source_used)
 
+    log.info("Flow signal source this run: [bold]%s[/bold]", source_used)
+    if source_used == "none":
+        log.warning(
+            "[bold yellow]No live options-flow data this run[/bold yellow] — every "
+            "live source returned nothing. Yielding ZERO flow signals; no new "
+            "positions will be opened from flow (existing ones are still managed)."
+        )
+
+    return rank_contracts(raw, cfg, paths)
+
+
+def rank_contracts(
+    raw: list[OptionContract], cfg: FlowConfig, paths: Paths,
+) -> list[FlowSignal]:
+    """
+    Provider-agnostic pipeline: enrich -> filter -> score -> aggregate to ticker
+    signals -> write the full ranked cache -> return the top-N. Takes an already
+    fetched contract list so it is independent of which adapter produced it.
+    """
     # --- enrich + filter ---
     qualifying: list[OptionContract] = []
     for c in raw:

@@ -223,12 +223,17 @@ noise, scores what's left, and emits the top-N signals. Every threshold lives in
 **Pipeline:**
 
 1. **Fetch** contracts for each watchlist name. Source is `config.flow.source`:
-   - `alpaca` — live option-chain snapshots
-   - `csv` — [`data/flow_contracts.csv`](data/flow_contracts.csv) (offline/testing)
-   - `auto` — try Alpaca, fall back to CSV (default)
+   - `tradier` — Tradier API option chains (needs `TRADIER_ACCESS_TOKEN`;
+     sandbox by default, delayed ~15m)
+   - `yfinance` — free option chains (delayed ~15m, snapshot)
+   - `auto` — Tradier if a token is configured, else yfinance (default)
+
+   There is **no stub/CSV production source**: if the selected live source
+   returns nothing, the scan yields zero signals and opens no new flow-driven
+   positions (existing positions are still managed and reconciled).
 2. **Per-contract filters** (drop noise): `MIN_CONTRACT_VOLUME` (500),
    `MIN_VOL_OI_RATIO` (2.0 — new positioning, not existing), `MIN_NOTIONAL_USD`
-   ($250k), `DTE_MIN/DTE_MAX` (1–60), and moneyness within ±20% of spot. OTM
+   ($500k), `DTE_MIN/DTE_MAX` (1–60), and moneyness within ±20% of spot. OTM
    calls 0–15% above spot are flagged as the speculative-bullish bucket.
 3. **Aggression proxy**: `score = (last − bid) / (ask − bid)`, clamped [0,1].
    `≥ AGGRESSION_BUY` (0.6) = aggressive buying; `≤ 0.4` = aggressive selling.
@@ -255,12 +260,16 @@ rationale notes that heavy put buying may be hedging.
   `MIN_NOTIONAL_USD`, `DTE_MIN/MAX`, `MONEYNESS_MAX`, `OTM_CALL_SPEC_MAX`,
   `AGGRESSION_BUY/SELL`, the `W_*` weights and `*_CAP` normalizers,
   `TOP_N_SIGNALS`, `BULLISH_CP_RATIO`, `BEARISH_CP_RATIO`) is in `FlowConfig`.
-- **Offline testing:** set `source="csv"` and edit
-  [`data/flow_contracts.csv`](data/flow_contracts.csv)
-  (`underlying,option_symbol,type,strike,expiry,spot,contract_price,bid,ask,volume,open_interest,implied_volatility`).
-- **Live UOA feed (Phase 2):** replace `fetch_contracts_alpaca()` /
-  `fetch_contracts_csv()` in `src/flow.py` with your source — the scoring,
-  aggregation, and decision pipeline are unchanged.
+- **Providers:** `flow.source` is `tradier`, `yfinance`, or `auto` (default:
+  Tradier if `TRADIER_ACCESS_TOKEN` is set, else yfinance). Point Tradier at
+  production real-time data with `FlowConfig.tradier_base_url`.
+- **Offline testing:** the deterministic tests load a fixture chain via
+  `fetch_contracts_csv()` and feed it through `rank_contracts()` — the same
+  pipeline live runs use after fetching. There is no CSV *production* source.
+- **Live UOA feed (Phase 2):** add another adapter alongside
+  `fetch_contracts_tradier()` / `fetch_contracts_yfinance()` in `src/flow.py`
+  and wire it into `scan_flow`'s dispatch — the scoring, aggregation, and
+  decision pipeline are unchanged.
 
 ---
 
