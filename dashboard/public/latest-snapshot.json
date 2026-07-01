@@ -1,170 +1,573 @@
 {
-  "timestamp": "2026-06-30T19:24:51.962344+00:00",
+  "timestamp": "2026-07-01T19:25:27.764354+00:00",
   "mode": "midday",
   "account": {
-    "equity": 10000.0,
-    "cash": 10000.0,
-    "buying_power": 40000.0,
-    "day_pnl": 0.0,
-    "day_pnl_pct": 0.0
+    "equity": 10002.61,
+    "cash": 4348.91,
+    "buying_power": 33225.99,
+    "day_pnl": -1.9799999999995634,
+    "day_pnl_pct": -0.00019790915969565602
   },
   "portfolio": {
-    "equity": 10000.0,
-    "cash": 10000.0,
-    "invested": 0.0,
-    "cash_pct": 1.0,
-    "invested_pct": 0.0,
-    "total_unrealized_pl": 0.0,
-    "largest_position_weight": 0.0,
-    "num_positions": 0,
-    "positions": []
+    "equity": 10002.61,
+    "cash": 4348.91,
+    "invested": 5653.69,
+    "cash_pct": 0.4348,
+    "invested_pct": 0.5652,
+    "total_unrealized_pl": 2.61,
+    "largest_position_weight": 0.0996,
+    "num_positions": 7,
+    "positions": [
+      {
+        "ticker": "AAPL",
+        "qty": 3.0,
+        "side": "long",
+        "avg_entry": 294.22,
+        "last_price": 294.25,
+        "market_value": 882.75,
+        "unrealized_pl": 0.1,
+        "unrealized_pl_pct": 0.0001,
+        "weight": 0.0883,
+        "stop_price": 270.68,
+        "target_price": 353.06,
+        "dist_to_stop_pct": 0.0801,
+        "dist_to_target_pct": 0.1999
+      },
+      {
+        "ticker": "AMD",
+        "qty": 1.0,
+        "side": "long",
+        "avg_entry": 552.11,
+        "last_price": 551.0,
+        "market_value": 551.0,
+        "unrealized_pl": -1.11,
+        "unrealized_pl_pct": -0.002,
+        "weight": 0.0551,
+        "stop_price": 507.94,
+        "target_price": 662.53,
+        "dist_to_stop_pct": 0.0781,
+        "dist_to_target_pct": 0.2024
+      },
+      {
+        "ticker": "AMZN",
+        "qty": 3.0,
+        "side": "long",
+        "avg_entry": 242.2,
+        "last_price": 242.63,
+        "market_value": 727.89,
+        "unrealized_pl": 1.29,
+        "unrealized_pl_pct": 0.0018,
+        "weight": 0.0728,
+        "stop_price": 222.82,
+        "target_price": 290.64,
+        "dist_to_stop_pct": 0.0816,
+        "dist_to_target_pct": 0.1979
+      },
+      {
+        "ticker": "HOOD",
+        "qty": 9.0,
+        "side": "long",
+        "avg_entry": 107.88,
+        "last_price": 108.76,
+        "market_value": 978.84,
+        "unrealized_pl": 7.92,
+        "unrealized_pl_pct": 0.0082,
+        "weight": 0.0979,
+        "stop_price": 99.25,
+        "target_price": 129.46,
+        "dist_to_stop_pct": 0.0874,
+        "dist_to_target_pct": 0.1903
+      },
+      {
+        "ticker": "IWM",
+        "qty": 3.0,
+        "side": "long",
+        "avg_entry": 301.65,
+        "last_price": 300.54,
+        "market_value": 901.62,
+        "unrealized_pl": -3.33,
+        "unrealized_pl_pct": -0.0037,
+        "weight": 0.0901,
+        "stop_price": 277.52,
+        "target_price": 361.98,
+        "dist_to_stop_pct": 0.0766,
+        "dist_to_target_pct": 0.2044
+      },
+      {
+        "ticker": "META",
+        "qty": 1.0,
+        "side": "long",
+        "avg_entry": 618.0,
+        "last_price": 615.57,
+        "market_value": 615.57,
+        "unrealized_pl": -2.43,
+        "unrealized_pl_pct": -0.0039,
+        "weight": 0.0615,
+        "stop_price": 568.56,
+        "target_price": 741.6,
+        "dist_to_stop_pct": 0.0764,
+        "dist_to_target_pct": 0.2047
+      },
+      {
+        "ticker": "NVDA",
+        "qty": 5.0,
+        "side": "long",
+        "avg_entry": 199.17,
+        "last_price": 199.21,
+        "market_value": 996.02,
+        "unrealized_pl": 0.17,
+        "unrealized_pl_pct": 0.0002,
+        "weight": 0.0996,
+        "stop_price": 183.24,
+        "target_price": 239.0,
+        "dist_to_stop_pct": 0.0802,
+        "dist_to_target_pct": 0.1998
+      }
+    ]
   },
   "macro": {
-    "vix": 16.45,
-    "vix_change_5d": -0.156,
+    "vix": 16.26,
+    "vix_change_5d": -0.1272,
     "regime": "normal"
   },
-  "market_summary": "Market sentiment is cautiously optimistic as the VIX remains low at 16.45, indicating a normal regime with reduced volatility. Tech stocks are showing signs of recovery, particularly AMD, which is trading above its 50-day moving average and has a strong RSI of 65.4, suggesting bullish momentum. Conversely, Apple, Amazon, and Microsoft are all trading below their 50-day moving averages, indicating potential weakness, with AAPL and AMZN both experiencing RSI levels around 45, suggesting they may be oversold. Notably, Intel is also performing well, trading above its 50-day moving average with a strong RSI of 63.6, indicating continued strength in the semiconductor sector. Overall, while some tech stocks face headwinds, others like AMD and INTC are positioned for potential gains.",
+  "market_summary": "Market sentiment appears stable with the VIX at 16.26, indicating a normal regime and a slight decrease in volatility. Notable single-name setups include Apple (AAPL), which is trading above its 50-day moving average and showing resilience despite recent headlines, while AMD (AMD) remains strong above its 50-day SMA but has pulled back from recent highs. Amazon (AMZN) is underperforming, trading below its 50-day SMA, suggesting potential weakness. Hims & Hers (HIMS) is gaining attention with a high RSI of 70.6 and trading above its moving averages, indicating bullish momentum. Meanwhile, Robinhood (HOOD) is also showing strength with a solid upward trend and a high RSI, reflecting positive investor sentiment.",
   "flow_signals": [
+    {
+      "ticker": "AMZN",
+      "direction": "bullish",
+      "composite_score": 100.0,
+      "top_contract": {
+        "symbol": "AMZN260702C00205000",
+        "type": "call",
+        "strike": 205.0,
+        "expiry": "2026-07-02"
+      },
+      "vol_oi_ratio": 17.22,
+      "notional": 94056015.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 6.61,
+      "iv": null,
+      "rationale": "Dominant aggressive call buying (call/put notional 6.6x); treated as a long entry trigger on AMZN."
+    },
+    {
+      "ticker": "META",
+      "direction": "bullish",
+      "composite_score": 100.0,
+      "top_contract": {
+        "symbol": "META260702C00620000",
+        "type": "call",
+        "strike": 620.0,
+        "expiry": "2026-07-02"
+      },
+      "vol_oi_ratio": 16.46,
+      "notional": 103683569.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 12.32,
+      "iv": 0.5612,
+      "rationale": "Dominant aggressive call buying (call/put notional 12.3x); treated as a long entry trigger on META."
+    },
+    {
+      "ticker": "PLTR",
+      "direction": "bullish",
+      "composite_score": 100.0,
+      "top_contract": {
+        "symbol": "PLTR260702C00128000",
+        "type": "call",
+        "strike": 128.0,
+        "expiry": "2026-07-02"
+      },
+      "vol_oi_ratio": 18.17,
+      "notional": 68653036.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 7.97,
+      "iv": 0.6083,
+      "rationale": "Dominant aggressive call buying (call/put notional 8.0x); treated as a long entry trigger on PLTR."
+    },
+    {
+      "ticker": "AAPL",
+      "direction": "bullish",
+      "composite_score": 99.3,
+      "top_contract": {
+        "symbol": "AAPL260706C00295000",
+        "type": "call",
+        "strike": 295.0,
+        "expiry": "2026-07-06"
+      },
+      "vol_oi_ratio": 12.22,
+      "notional": 20549176.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 3.67,
+      "iv": 0.2068,
+      "rationale": "Dominant aggressive call buying (call/put notional 3.7x); treated as a long entry trigger on AAPL."
+    },
     {
       "ticker": "NVDA",
       "direction": "bullish",
-      "composite_score": 70.0,
+      "composite_score": 99.0,
       "top_contract": {
-        "symbol": "NVDA260717C00175000",
+        "symbol": "NVDA260708C00197500",
         "type": "call",
-        "strike": 175.0,
-        "expiry": "2026-07-17"
+        "strike": 197.5,
+        "expiry": "2026-07-08"
       },
-      "vol_oi_ratio": 4.0,
-      "notional": 7382000.0,
-      "aggression": 0.75,
-      "call_put_notional_ratio": 7382000.0,
-      "iv": 0.52,
-      "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+      "vol_oi_ratio": 15.03,
+      "notional": 151434555.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 5.39,
+      "iv": 0.3338,
+      "rationale": "Dominant aggressive call buying (call/put notional 5.4x); treated as a long entry trigger on NVDA."
+    },
+    {
+      "ticker": "MSTR",
+      "direction": "bullish",
+      "composite_score": 98.6,
+      "top_contract": {
+        "symbol": "MSTR260710C00091500",
+        "type": "call",
+        "strike": 91.5,
+        "expiry": "2026-07-10"
+      },
+      "vol_oi_ratio": 17.32,
+      "notional": 40981974.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 3.81,
+      "iv": 0.9414,
+      "rationale": "Dominant aggressive call buying (call/put notional 3.8x); treated as a long entry trigger on MSTR."
+    },
+    {
+      "ticker": "MU",
+      "direction": "bullish",
+      "composite_score": 96.9,
+      "top_contract": {
+        "symbol": "MU260710P01035000",
+        "type": "put",
+        "strike": 1035.0,
+        "expiry": "2026-07-10"
+      },
+      "vol_oi_ratio": 11.86,
+      "notional": 518824362.0,
+      "aggression": 0.931,
+      "call_put_notional_ratio": 2.21,
+      "iv": 1.0223,
+      "rationale": "Dominant aggressive call buying (call/put notional 2.2x); treated as a long entry trigger on MU."
+    },
+    {
+      "ticker": "QCOM",
+      "direction": "bullish",
+      "composite_score": 93.6,
+      "top_contract": {
+        "symbol": "QCOM260710C00200000",
+        "type": "call",
+        "strike": 200.0,
+        "expiry": "2026-07-10"
+      },
+      "vol_oi_ratio": 13.97,
+      "notional": 6651506.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 10.58,
+      "iv": 0.6852,
+      "rationale": "Dominant aggressive call buying (call/put notional 10.6x); treated as a long entry trigger on QCOM."
+    },
+    {
+      "ticker": "MSFT",
+      "direction": "bullish",
+      "composite_score": 93.6,
+      "top_contract": {
+        "symbol": "MSFT260706C00385000",
+        "type": "call",
+        "strike": 385.0,
+        "expiry": "2026-07-06"
+      },
+      "vol_oi_ratio": 8.35,
+      "notional": 78504236.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 7.79,
+      "iv": 0.2703,
+      "rationale": "Dominant aggressive call buying (call/put notional 7.8x); treated as a long entry trigger on MSFT."
+    },
+    {
+      "ticker": "SMH",
+      "direction": "bearish",
+      "composite_score": 92.6,
+      "top_contract": {
+        "symbol": "SMH260710P00602500",
+        "type": "put",
+        "strike": 602.5,
+        "expiry": "2026-07-10"
+      },
+      "vol_oi_ratio": 92.02,
+      "notional": 41724411.0,
+      "aggression": 0.76,
+      "call_put_notional_ratio": 0.13,
+      "iv": 0.549,
+      "rationale": "Heavy put buying (call/put notional 0.13x). Caution, not a short: put flow can be hedging. Consider avoiding/trimming SMH."
+    },
+    {
+      "ticker": "HIMS",
+      "direction": "bullish",
+      "composite_score": 85.1,
+      "top_contract": {
+        "symbol": "HIMS260702C00036000",
+        "type": "call",
+        "strike": 36.0,
+        "expiry": "2026-07-02"
+      },
+      "vol_oi_ratio": 5.75,
+      "notional": 5175731.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 5175731.0,
+      "iv": 1.2094,
+      "rationale": "Dominant aggressive call buying (call/put notional 5175731.0x); treated as a long entry trigger on HIMS."
+    },
+    {
+      "ticker": "NOW",
+      "direction": "bullish",
+      "composite_score": 79.3,
+      "top_contract": {
+        "symbol": "NOW260702C00104000",
+        "type": "call",
+        "strike": 104.0,
+        "expiry": "2026-07-02"
+      },
+      "vol_oi_ratio": 8.0,
+      "notional": 6310717.0,
+      "aggression": 0.5,
+      "call_put_notional_ratio": 6310717.0,
+      "iv": 0.7189,
+      "rationale": "Dominant aggressive call buying (call/put notional 6310717.0x); treated as a long entry trigger on NOW."
     }
   ],
   "decisions": [
     {
-      "action": "buy",
+      "action": "hold",
+      "ticker": "AAPL",
+      "side": "long",
+      "proposed_weight": 0.088,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.72,
+      "rationale": "AAPL was opened earlier and is essentially flat, so this midday pass should not second-guess the existing bracket. The name remains above its 50-day SMA and has a strong bullish call-flow signal, with aggressive 295-strike call buying, 12.2x volume/open interest, and about $20.5M notional supporting the long thesis. Keep the existing stop/target structure rather than adding intraday.",
+      "id": "69a6b6891ce94f0489f68f41338bfeed"
+    },
+    {
+      "action": "hold",
+      "ticker": "AMD",
+      "side": "long",
+      "proposed_weight": 0.055,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.68,
+      "rationale": "AMD is a morning position and remains only slightly below entry, with price still well above both the 20-day and 50-day SMAs. There is no new standout AMD flow signal in this midday scan, and the existing bracket is already managing the downside and upside. Hold rather than add, given the portfolio already has meaningful semiconductor exposure through AMD and NVDA.",
+      "id": "e0920b25443b4f4da7b6abdb240b902e"
+    },
+    {
+      "action": "hold",
+      "ticker": "AMZN",
+      "side": "long",
+      "proposed_weight": 0.073,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.69,
+      "rationale": "AMZN is already in the book and is flat-to-slightly positive, so this midday run should not react to the stock\u2019s below-50-day technical weakness. The bullish options flow is very large, with a 100 composite score, 17.2x volume/open interest, 6.6x call/put notional, and about $94M notional, which supports continuing to let the bracket work. Hold rather than add because the setup is still technically mixed below the 50-day SMA.",
+      "id": "07f57681aa7746eea0e133443512983d"
+    },
+    {
+      "action": "hold",
+      "ticker": "HOOD",
+      "side": "long",
+      "proposed_weight": 0.098,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.73,
+      "rationale": "HOOD remains a strong existing momentum position, trading above the 20-day and 50-day SMAs with solid unrealized gains versus entry. There is no new HOOD options-flow trigger in the midday list, and RSI is elevated enough that adding here would be chasing. Keep the current bracket-managed long exposure.",
+      "id": "02b63078972141b1b4d875ada79a510d"
+    },
+    {
+      "action": "hold",
+      "ticker": "IWM",
+      "side": "long",
+      "proposed_weight": 0.09,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.7,
+      "rationale": "IWM is an existing long and is trading near its 52-week high while above its 20-day and 50-day SMAs, so the broader risk-on small-cap thesis remains intact. There is no standout new bullish options sweep in IWM during this midday pass, and the position is only modestly below entry. Hold and let the existing stop/target manage the trade.",
+      "id": "d3733255998048a3b787c345fd6333ac"
+    },
+    {
+      "action": "hold",
+      "ticker": "META",
+      "side": "long",
+      "proposed_weight": 0.062,
+      "stop_pct": -0.08,
+      "target_pct": 0.2,
+      "confidence": 0.74,
+      "rationale": "META is already held and is only modestly below entry, while still trading above its 50-day SMA. The midday flow is notably supportive, with a 100 composite score, aggressive 620-strike call buying, 16.5x volume/open interest, 12.3x call/put notional, and over $100M notional. Hold the existing position rather than add, since the purpose of this pass is only to catch new standout names.",
+      "id": "82e81e109cc64a0d9cf27d9694d7d743"
+    },
+    {
+      "action": "hold",
       "ticker": "NVDA",
       "side": "long",
       "proposed_weight": 0.1,
       "stop_pct": -0.08,
       "target_pct": 0.2,
-      "confidence": 0.72,
-      "rationale": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
-      "id": "cb394060e25143bdb80eb932fb0ceb77"
+      "confidence": 0.71,
+      "rationale": "NVDA is an existing position and is essentially flat, so no intraday management action is needed. The flow remains bullish, with aggressive 197.5-strike call buying, 15.0x volume/open interest, 5.4x call/put notional, and about $151M notional, but the stock is still below its 50-day SMA. Hold the bracket-managed position and avoid adding to already-heavy semiconductor exposure.",
+      "id": "8bc8b309211f4d6fbba15ec951444357"
+    },
+    {
+      "action": "buy",
+      "ticker": "PLTR",
+      "side": "long",
+      "proposed_weight": 0.08,
+      "stop_pct": -0.07,
+      "target_pct": 0.18,
+      "confidence": 0.8,
+      "rationale": "PLTR is the one new midday flow signal strong enough to justify using the last portfolio slot: bullish call flow has a 100 composite score, 18.2x volume/open interest, full ask-side aggression, 8.0x call/put notional, and about $68.7M notional in the 128-strike calls. Technically, the stock is trying to reclaim momentum by trading just above its 20-day SMA, though it remains below the 50-day, so size should stay conservative. The entry offers asymmetric follow-through potential if the sweep marks institutional demand, with a tightened stop to control risk.",
+      "id": "4865e209b4a74e7fb4a9408ea452a6cb"
     }
   ],
   "decision_records": [
     {
-      "id": "cb394060e25143bdb80eb932fb0ceb77",
-      "timestamp": "2026-06-30T19:24:51.877741+00:00",
+      "id": "4865e209b4a74e7fb4a9408ea452a6cb",
+      "timestamp": "2026-07-01T19:25:27.728215+00:00",
       "mode": "midday",
       "model": "gpt-5.5",
       "reasoning_effort": "medium",
-      "ticker": "NVDA",
+      "ticker": "PLTR",
       "action": "buy",
       "direction": "bullish",
-      "confidence": 0.72,
-      "rationale": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
-      "entry_price": 199.19,
-      "qty": 5,
-      "stop_price": 183.25,
-      "target_price": 239.03,
+      "confidence": 0.8,
+      "rationale": "PLTR is the one new midday flow signal strong enough to justify using the last portfolio slot: bullish call flow has a 100 composite score, 18.2x volume/open interest, full ask-side aggression, 8.0x call/put notional, and about $68.7M notional in the 128-strike calls. Technically, the stock is trying to reclaim momentum by trading just above its 20-day SMA, though it remains below the 50-day, so size should stay conservative. The entry offers asymmetric follow-through potential if the sweep marks institutional demand, with a tightened stop to control risk.",
+      "entry_price": 127.01,
+      "qty": 6,
+      "stop_price": 118.12,
+      "target_price": 149.87,
       "flow_signal": {
-        "ticker": "NVDA",
+        "ticker": "PLTR",
         "direction": "bullish",
-        "composite_score": 70.0,
+        "composite_score": 100.0,
         "top_contract": {
-          "symbol": "NVDA260717C00175000",
+          "symbol": "PLTR260702C00128000",
           "type": "call",
-          "strike": 175.0,
-          "expiry": "2026-07-17"
+          "strike": 128.0,
+          "expiry": "2026-07-02"
         },
-        "vol_oi_ratio": 4.0,
-        "notional": 7382000.0,
-        "aggression": 0.75,
-        "call_put_notional_ratio": 7382000.0,
-        "iv": 0.52,
-        "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+        "vol_oi_ratio": 18.17,
+        "notional": 68653036.0,
+        "aggression": 1.0,
+        "call_put_notional_ratio": 7.97,
+        "iv": 0.6083,
+        "rationale": "Dominant aggressive call buying (call/put notional 8.0x); treated as a long entry trigger on PLTR."
       },
       "technicals": {
-        "ticker": "NVDA",
-        "last_price": 199.19,
-        "sma20": 205.7,
-        "sma50": 209.97,
-        "rsi14": 44.4,
-        "high_52w": 235.74,
-        "low_52w": 153.3,
-        "pct_from_52w_low": 0.299,
-        "pct_from_52w_high": -0.155,
-        "avg_dollar_vol_20d": 31356980345.0,
+        "ticker": "PLTR",
+        "last_price": 127.01,
+        "sma20": 126.67,
+        "sma50": 134.94,
+        "rsi14": 49.4,
+        "high_52w": 207.18,
+        "low_52w": 107.27,
+        "pct_from_52w_low": 0.184,
+        "pct_from_52w_high": -0.387,
+        "avg_dollar_vol_20d": 5345393772.0,
         "trend": "below_50sma"
       },
       "market_context": {
         "macro": {
-          "vix": 16.45,
-          "vix_change_5d": -0.156,
+          "vix": 16.26,
+          "vix_change_5d": -0.1272,
           "regime": "normal"
         },
-        "summary": "Market sentiment is cautiously optimistic as the VIX remains low at 16.45, indicating a normal regime with reduced volatility. Tech stocks are showing signs of recovery, particularly AMD, which is trading above its 50-day moving average and has a strong RSI of 65.4, suggesting bullish momentum. Conversely, Apple, Amazon, and Microsoft are all trading below their 50-day moving averages, indicating potential weakness, with AAPL and AMZN both experiencing RSI levels around 45, suggesting they may be oversold. Notably, Intel is also performing well, trading above its 50-day moving average with a strong RSI of 63.6, indicating continued strength in the semiconductor sector. Overall, while some tech stocks face headwinds, others like AMD and INTC are positioned for potential gains."
+        "summary": "Market sentiment appears stable with the VIX at 16.26, indicating a normal regime and a slight decrease in volatility. Notable single-name setups include Apple (AAPL), which is trading above its 50-day moving average and showing resilience despite recent headlines, while AMD (AMD) remains strong above its 50-day SMA but has pulled back from recent highs. Amazon (AMZN) is underperforming, trading below its 50-day SMA, suggesting potential weakness. Hims & Hers (HIMS) is gaining attention with a high RSI of 70.6 and trading above its moving averages, indicating bullish momentum. Meanwhile, Robinhood (HOOD) is also showing strength with a solid upward trend and a high RSI, reflecting positive investor sentiment."
       },
-      "client_order_id": "cb394060e25143bdb80eb932fb0ceb77",
+      "client_order_id": "4865e209b4a74e7fb4a9408ea452a6cb",
       "order_status": "placed",
-      "alpaca_order_id": "7357c9c1-6d0e-467d-863e-a6d259f316a3"
+      "alpaca_order_id": "4cbfbd81-11e0-4b3e-a584-b78994e26c2e"
     }
   ],
   "cost": {
-    "timestamp": "2026-06-30T19:24:51.878512+00:00",
+    "timestamp": "2026-07-01T19:25:27.729125+00:00",
     "mode": "midday",
-    "total_cost_usd": 0.042227,
+    "total_cost_usd": 0.095253,
     "decision_model": "gpt-5.5",
-    "decision_input_tokens": 4059,
+    "decision_input_tokens": 9333,
     "decision_cached_tokens": 0,
-    "decision_output_tokens": 716,
+    "decision_output_tokens": 1605,
     "decision_reasoning_tokens": 512,
-    "decision_cost_usd": 0.041775,
+    "decision_cost_usd": 0.094815,
     "summary_model": "gpt-4o-mini",
-    "summary_input_tokens": 2362,
-    "summary_output_tokens": 162,
-    "summary_cost_usd": 0.000451
+    "summary_input_tokens": 2306,
+    "summary_output_tokens": 154,
+    "summary_cost_usd": 0.000438
   },
   "usage": {
     "decision": {
       "label": "decision",
       "model": "gpt-5.5",
-      "input_tokens": 4059,
+      "input_tokens": 9333,
       "cached_input_tokens": 0,
-      "output_tokens": 716,
+      "output_tokens": 1605,
       "reasoning_tokens": 512,
-      "cost_usd": 0.041775
+      "cost_usd": 0.094815
     },
     "summary": {
       "label": "summary",
       "model": "gpt-4o-mini",
-      "input_tokens": 2362,
+      "input_tokens": 2306,
       "cached_input_tokens": 0,
-      "output_tokens": 162,
+      "output_tokens": 154,
       "reasoning_tokens": 0,
-      "cost_usd": 0.000451
+      "cost_usd": 0.000438
     }
   },
   "executed": [
     {
-      "ticker": "NVDA",
+      "ticker": "PLTR",
       "action": "buy",
-      "qty": 5,
+      "qty": 6,
       "status": "placed",
-      "order_id": "7357c9c1-6d0e-467d-863e-a6d259f316a3",
-      "detail": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
-      "client_order_id": "cb394060e25143bdb80eb932fb0ceb77",
-      "decision_id": "cb394060e25143bdb80eb932fb0ceb77"
+      "order_id": "4cbfbd81-11e0-4b3e-a584-b78994e26c2e",
+      "detail": "PLTR is the one new midday flow signal strong enough to justify using the last portfolio slot: bullish call flow has a 100 composite score, 18.2x volume/open interest, full ask-side aggression, 8.0x call/put notional, and about $68.7M notional in the 128-strike calls. Technically, the stock is trying to reclaim momentum by trading just above its 20-day SMA, though it remains below the 50-day, so size should stay conservative. The entry offers asymmetric follow-through potential if the sweep marks institutional demand, with a tightened stop to control risk.",
+      "client_order_id": "4865e209b4a74e7fb4a9408ea452a6cb",
+      "decision_id": "4865e209b4a74e7fb4a9408ea452a6cb"
     }
   ],
   "rejected": [],
-  "alerts": [],
+  "alerts": [
+    {
+      "level": "info",
+      "message": "PLTR: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "AMZN: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "AMD: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "IWM: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "HOOD: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "AAPL: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "META: TARGET (take-profit) filled."
+    },
+    {
+      "level": "info",
+      "message": "NVDA: TARGET (take-profit) filled."
+    }
+  ],
   "halt": false,
   "market_open": true,
   "dry_run": false

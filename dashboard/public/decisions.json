@@ -1,59 +1,59 @@
 [
   {
-    "id": "cb394060e25143bdb80eb932fb0ceb77",
-    "timestamp": "2026-06-30T19:24:51.877741+00:00",
+    "id": "4865e209b4a74e7fb4a9408ea452a6cb",
+    "timestamp": "2026-07-01T19:25:27.728215+00:00",
     "mode": "midday",
     "model": "gpt-5.5",
     "reasoning_effort": "medium",
-    "ticker": "NVDA",
+    "ticker": "PLTR",
     "action": "buy",
     "direction": "bullish",
-    "confidence": 0.72,
-    "rationale": "NVDA is the only midday signal that meets the bar for a new entry: a bullish options-flow trigger with $7.38M in aggressive call notional, 4.0x volume/open interest, and 0.75 ask-side aggression in the 2026 $175 calls. The stock is still below its 20- and 50-day averages, so the technical setup is not fully confirmed, but RSI near 44 leaves room for a recovery if the semi/AI trade firms this afternoon. Given the large, directional flow versus a defined -8% stop and +20% target, the risk/reward supports a smaller-than-max starter position rather than a full allocation.",
-    "entry_price": 199.19,
-    "qty": 5,
-    "stop_price": 183.25,
-    "target_price": 239.03,
+    "confidence": 0.8,
+    "rationale": "PLTR is the one new midday flow signal strong enough to justify using the last portfolio slot: bullish call flow has a 100 composite score, 18.2x volume/open interest, full ask-side aggression, 8.0x call/put notional, and about $68.7M notional in the 128-strike calls. Technically, the stock is trying to reclaim momentum by trading just above its 20-day SMA, though it remains below the 50-day, so size should stay conservative. The entry offers asymmetric follow-through potential if the sweep marks institutional demand, with a tightened stop to control risk.",
+    "entry_price": 127.01,
+    "qty": 6,
+    "stop_price": 118.12,
+    "target_price": 149.87,
     "flow_signal": {
-      "ticker": "NVDA",
+      "ticker": "PLTR",
       "direction": "bullish",
-      "composite_score": 70.0,
+      "composite_score": 100.0,
       "top_contract": {
-        "symbol": "NVDA260717C00175000",
+        "symbol": "PLTR260702C00128000",
         "type": "call",
-        "strike": 175.0,
-        "expiry": "2026-07-17"
+        "strike": 128.0,
+        "expiry": "2026-07-02"
       },
-      "vol_oi_ratio": 4.0,
-      "notional": 7382000.0,
-      "aggression": 0.75,
-      "call_put_notional_ratio": 7382000.0,
-      "iv": 0.52,
-      "rationale": "Dominant aggressive call buying (call/put notional 7382000.0x); treated as a long entry trigger on NVDA."
+      "vol_oi_ratio": 18.17,
+      "notional": 68653036.0,
+      "aggression": 1.0,
+      "call_put_notional_ratio": 7.97,
+      "iv": 0.6083,
+      "rationale": "Dominant aggressive call buying (call/put notional 8.0x); treated as a long entry trigger on PLTR."
     },
     "technicals": {
-      "ticker": "NVDA",
-      "last_price": 199.19,
-      "sma20": 205.7,
-      "sma50": 209.97,
-      "rsi14": 44.4,
-      "high_52w": 235.74,
-      "low_52w": 153.3,
-      "pct_from_52w_low": 0.299,
-      "pct_from_52w_high": -0.155,
-      "avg_dollar_vol_20d": 31356980345.0,
+      "ticker": "PLTR",
+      "last_price": 127.01,
+      "sma20": 126.67,
+      "sma50": 134.94,
+      "rsi14": 49.4,
+      "high_52w": 207.18,
+      "low_52w": 107.27,
+      "pct_from_52w_low": 0.184,
+      "pct_from_52w_high": -0.387,
+      "avg_dollar_vol_20d": 5345393772.0,
       "trend": "below_50sma"
     },
     "market_context": {
       "macro": {
-        "vix": 16.45,
-        "vix_change_5d": -0.156,
+        "vix": 16.26,
+        "vix_change_5d": -0.1272,
         "regime": "normal"
       },
-      "summary": "Market sentiment is cautiously optimistic as the VIX remains low at 16.45, indicating a normal regime with reduced volatility. Tech stocks are showing signs of recovery, particularly AMD, which is trading above its 50-day moving average and has a strong RSI of 65.4, suggesting bullish momentum. Conversely, Apple, Amazon, and Microsoft are all trading below their 50-day moving averages, indicating potential weakness, with AAPL and AMZN both experiencing RSI levels around 45, suggesting they may be oversold. Notably, Intel is also performing well, trading above its 50-day moving average with a strong RSI of 63.6, indicating continued strength in the semiconductor sector. Overall, while some tech stocks face headwinds, others like AMD and INTC are positioned for potential gains."
+      "summary": "Market sentiment appears stable with the VIX at 16.26, indicating a normal regime and a slight decrease in volatility. Notable single-name setups include Apple (AAPL), which is trading above its 50-day moving average and showing resilience despite recent headlines, while AMD (AMD) remains strong above its 50-day SMA but has pulled back from recent highs. Amazon (AMZN) is underperforming, trading below its 50-day SMA, suggesting potential weakness. Hims & Hers (HIMS) is gaining attention with a high RSI of 70.6 and trading above its moving averages, indicating bullish momentum. Meanwhile, Robinhood (HOOD) is also showing strength with a solid upward trend and a high RSI, reflecting positive investor sentiment."
     },
-    "client_order_id": "cb394060e25143bdb80eb932fb0ceb77",
+    "client_order_id": "4865e209b4a74e7fb4a9408ea452a6cb",
     "order_status": "placed",
-    "alpaca_order_id": "7357c9c1-6d0e-467d-863e-a6d259f316a3"
+    "alpaca_order_id": "4cbfbd81-11e0-4b3e-a584-b78994e26c2e"
   }
 ]
