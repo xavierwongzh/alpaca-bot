@@ -76,6 +76,34 @@ def _load_decision_maps(decisions_jsonl: str) -> tuple[dict[str, dict], dict[str
     return by_order, by_coid
 
 
+def latest_entry_by_symbol(decisions_jsonl: str) -> dict[str, dict]:
+    """
+    Most recent ENTRY (buy) decision record per symbol, ANY run mode. Used by
+    protection reconciliation (for stored stop/target) and the dashboard join.
+    """
+    out: dict[str, dict] = {}
+    if not os.path.exists(decisions_jsonl):
+        return out
+    with open(decisions_jsonl, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if str(r.get("action", "")).lower() != "buy":
+                continue
+            sym = str(r.get("ticker", "")).upper()
+            if not sym:
+                continue
+            prev = out.get(sym)
+            if not prev or str(r.get("timestamp", "")) > str(prev.get("timestamp", "")):
+                out[sym] = r
+    return out
+
+
 def _existing_keys(path: str) -> set[str]:
     keys: set[str] = set()
     if not os.path.exists(path):

@@ -147,11 +147,11 @@ class UniverseConfig:
 @dataclass(frozen=True)
 class FlowConfig:
     # Data source for option contracts:
-    #   "alpaca" -> live option-chain snapshots
-    #   "csv"    -> read data/flow_contracts.csv (offline/testing)
-    #   "auto"   -> try alpaca, fall back to csv
+    #   "yfinance" -> free live-ish option chains (delayed ~15m, snapshot)
+    #   "csv"      -> data/flow_contracts.csv — STUB/last-resort only
+    #   "auto"     -> yfinance, fall back to csv (default)
     source: str = "auto"
-    options_feed: str = "indicative"        # "indicative" (free) | "opra" (subscription)
+    options_feed: str = "indicative"        # (legacy, unused) alpaca feed selector
 
     # --- Per-contract filters (drop noise before scoring) ---
     MIN_CONTRACT_VOLUME: int = 500          # day volume on the contract

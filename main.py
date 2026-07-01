@@ -31,12 +31,12 @@ from src.cost import write_cost_log
 from src.dashboard import console, render_dashboard
 from src.decision import get_decisions
 from src.evaluation import run_evaluation
-from src.execution import place_orders
+from src.execution import place_orders, reconcile_protection
 from src.flow import bullish_tickers, scan_flow
 from src.logger import get_logger, init_trade_log, log_trade_event, write_snapshot
 from src.market_data import MarketData
 from src.records import append_decision_records, build_decision_records
-from src.reconcile import reconcile_closed_trades
+from src.reconcile import latest_entry_by_symbol, reconcile_closed_trades
 from src.risk import apply_midday_filter, daily_loss_halt_triggered, size_and_validate
 
 log = get_logger()
@@ -92,6 +92,20 @@ def main() -> int:
     account = broker.get_account()
     raw_positions = broker.get_positions()
     held_tickers = [p.symbol for p in raw_positions]
+
+    # --- protection reconciliation (invariant: every position has GTC TP+SL) ---
+    # Runs BEFORE new decisions. Re-attaches missing brackets so a position that
+    # lost its protection (e.g. old DAY legs that expired) is protected again.
+    # Skipped in dry-run (it places real GTC orders).
+    if not dry_run:
+        try:
+            entries_by_sym = latest_entry_by_symbol(cfg.paths.decisions_jsonl)
+            repaired = reconcile_protection(broker, cfg, raw_positions, entries_by_sym)
+            if repaired:
+                log.info("Protection reconciliation: repaired %d position(s): %s",
+                         len(repaired), ", ".join(r["ticker"] for r in repaired))
+        except Exception as e:  # noqa: BLE001
+            log.warning("Protection reconciliation failed (non-fatal): %s", e)
 
     # --- kill switch / daily loss halt ---
     halt = (
@@ -222,7 +236,7 @@ def main() -> int:
     alerts = build_alerts(portfolio, account.day_pnl_pct, cfg.risk, halt_from_loss, recently_filled)
 
     render_dashboard(account, portfolio, macro, market_summary,
-                     exec_results, rejected, alerts, halt_from_loss)
+                     exec_results, rejected, alerts, halt_from_loss, mode=mode)
 
     snapshot = {
         "timestamp": datetime.now(timezone.utc).isoformat(),

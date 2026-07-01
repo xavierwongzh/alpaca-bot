@@ -35,8 +35,10 @@ def render_dashboard(
     rejected: list[Any],
     alerts: list[Alert],
     halt_triggered: bool,
+    mode: str = "open",
 ) -> None:
-    console.rule("[bold cyan]Alpaca Paper Trading Bot — Morning Run")
+    run_label = {"open": "Morning Run", "midday": "Midday Run"}.get(mode, f"{mode.title()} Run")
+    console.rule(f"[bold cyan]Alpaca Paper Trading Bot — {run_label}")
 
     # --- account header ---
     header = Table.grid(expand=True)
@@ -92,18 +94,20 @@ def render_dashboard(
 
     # --- today's actions ---
     at = Table(title="Today's Actions", box=box.SIMPLE_HEAVY, expand=True)
-    for col in ("Action", "Ticker", "Qty", "Status", "Detail"):
-        at.add_column(col, justify="left")
+    for col in ("Action", "Ticker", "Qty", "Status"):
+        at.add_column(col, justify="left", no_wrap=True)
+    # Detail wraps (full rationale readable) and gets the leftover width.
+    at.add_column("Detail", justify="left", overflow="fold", ratio=1)
     if exec_results:
         for r in exec_results:
             status_style = {"placed": "green", "skipped": "yellow",
                             "error": "red", "rejected": "red"}.get(r.status, "white")
             at.add_row(r.action.upper(), r.ticker, f"{r.qty:g}",
                        f"[{status_style}]{r.status}[/{status_style}]",
-                       (r.detail or "")[:60])
+                       (r.detail or ""))
     for rj in rejected:
         at.add_row(getattr(rj, "action", "?").upper(), getattr(rj, "ticker", "?"),
-                   "-", "[dim]not sized[/dim]", getattr(rj, "reason", "")[:60])
+                   "-", "[dim]not sized[/dim]", getattr(rj, "reason", ""))
     if not exec_results and not rejected:
         at.add_row("[dim]none[/dim]", "", "", "", "no trades today")
     console.print(at)

@@ -46,10 +46,12 @@ export default function DashboardPage() {
     return m;
   }, [decisions]);
 
-  const latestOpenEntryBySymbol = useMemo(() => {
+  // Most recent ENTRY (buy) per symbol, ANY run mode (open OR midday) — a
+  // position can be opened by either pass, so we must not filter on mode.
+  const latestEntryBySymbol = useMemo(() => {
     const m = new Map<string, DecisionRecord>();
     for (const r of decisions ?? []) {
-      if (r.mode !== "open" || r.action !== "buy") continue;
+      if (r.action !== "buy") continue;
       const prev = m.get(r.ticker);
       if (!prev || r.timestamp > prev.timestamp) m.set(r.ticker, r);
     }
@@ -67,7 +69,7 @@ export default function DashboardPage() {
     setModal({ open: true, title: `${o.symbol} · order`, record: rec });
   };
   const openForPosition = (symbol: string) => {
-    const rec = latestOpenEntryBySymbol.get(symbol) ?? null;
+    const rec = latestEntryBySymbol.get(symbol) ?? null;
     setModal({ open: true, title: `${symbol} · position`, record: rec });
   };
   const closeModal = () => setModal((s) => ({ ...s, open: false }));
