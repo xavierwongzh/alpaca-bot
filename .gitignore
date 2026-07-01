@@ -22,6 +22,7 @@ data/cost_log.csv
 data/closed_trades.jsonl
 data/decisions/
 data/evaluation/
+data/state/
 # Published dashboard artifacts (CI regenerates + force-adds these).
 dashboard/public/latest-snapshot.json
 dashboard/public/flow-cache.json

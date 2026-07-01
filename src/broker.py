@@ -121,6 +121,19 @@ class Broker:
     def is_market_open(self) -> bool:
         return bool(self.client.get_clock().is_open)
 
+    def get_market_date(self):
+        """
+        Current US market calendar date from the Alpaca clock (its timestamp is
+        US/Eastern-aware, so .date() is the trading date). Falls back to the UTC
+        date if the clock can't be read. Used for the per-day run idempotency guard.
+        """
+        from datetime import datetime, timezone
+        try:
+            return self.client.get_clock().timestamp.date()
+        except Exception as e:  # noqa: BLE001
+            log.warning("Could not read market clock for date (%s); using UTC date.", e)
+            return datetime.now(timezone.utc).date()
+
     def get_fills(self, lookback_days: int = 180) -> list[dict]:
         """
         Normalized fill events reconstructed from filled orders (this alpaca-py

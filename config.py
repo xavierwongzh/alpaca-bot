@@ -230,6 +230,7 @@ class Paths:
     evaluation_dir: str = field(default="")
     evaluation_latest_json: str = field(default="")
     evaluation_summary_txt: str = field(default="")
+    state_dir: str = field(default="")
     logs_dir: str = field(default="")
     trade_log_csv: str = field(default="")
     snapshots_dir: str = field(default="")
@@ -240,9 +241,10 @@ class Paths:
         data_dir = os.path.join(root, "data")
         decisions_dir = os.path.join(data_dir, "decisions")
         evaluation_dir = os.path.join(data_dir, "evaluation")
+        state_dir = os.path.join(data_dir, "state")
         logs_dir = os.path.join(root, "logs")
         snapshots_dir = os.path.join(logs_dir, "snapshots")
-        for d in (data_dir, decisions_dir, evaluation_dir, logs_dir, snapshots_dir):
+        for d in (data_dir, decisions_dir, evaluation_dir, state_dir, logs_dir, snapshots_dir):
             os.makedirs(d, exist_ok=True)
         return cls(
             root=root,
@@ -256,6 +258,7 @@ class Paths:
             evaluation_dir=evaluation_dir,
             evaluation_latest_json=os.path.join(evaluation_dir, "latest.json"),
             evaluation_summary_txt=os.path.join(evaluation_dir, "summary.txt"),
+            state_dir=state_dir,
             logs_dir=logs_dir,
             trade_log_csv=os.path.join(logs_dir, "trade_log.csv"),
             snapshots_dir=snapshots_dir,

@@ -38,6 +38,7 @@ from src.market_data import MarketData
 from src.records import append_decision_records, build_decision_records
 from src.reconcile import latest_entry_by_symbol, reconcile_closed_trades
 from src.risk import apply_midday_filter, daily_loss_halt_triggered, size_and_validate
+from src.runstate import already_ran_today, mark_ran_today
 
 log = get_logger()
 
@@ -74,6 +75,19 @@ def main() -> int:
 
     init_trade_log(cfg.paths.trade_log_csv)
     log.info("Run mode: [bold]%s[/bold]%s", mode, " (dry-run)" if dry_run else "")
+
+    # --- idempotency guard: one successful run per mode per US market day ---
+    # The workflow fires each mode from several redundant slots so a dropped
+    # GitHub trigger can't cost the run. This gate runs BEFORE the flow scan and
+    # any OpenAI call, so a duplicate slot exits here having spent ZERO tokens.
+    # The completion marker is written only at the END of a successful run, so a
+    # slot that fails early doesn't block a later slot from retrying. Skipped in
+    # dry-run so manual testing always proceeds.
+    market_date = broker.get_market_date()
+    if not dry_run and already_ran_today(cfg.paths, mode, market_date):
+        log.info("[yellow]%s run already completed today (%s) — skipping.[/yellow]",
+                 mode, market_date)
+        return 0
 
     # --- market-open safeguard ---
     # GitHub's scheduler can fire on holidays/early closes. When the market is
@@ -275,6 +289,13 @@ def main() -> int:
         run_evaluation(secrets, cfg, broker=broker, market_data=md)
     except Exception as e:  # noqa: BLE001
         log.warning("Evaluation step failed (non-fatal): %s", e)
+
+    # --- mark this run complete (idempotency marker for redundant slots) ---
+    # Written only here, after a full successful run, so a later slot sees it and
+    # skips. Not written in dry-run. CI commits data/state/ so the next slot's
+    # fresh runner can read it.
+    if not dry_run:
+        mark_ran_today(cfg.paths, mode, market_date)
 
     return 0
 
