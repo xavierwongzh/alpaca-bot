@@ -8,6 +8,7 @@ import PositionsTable, { type Protection } from "@/components/PositionsTable";
 import OrdersTable from "@/components/OrdersTable";
 import DecisionModal from "@/components/DecisionModal";
 import PerformanceView from "@/components/PerformanceView";
+import FlowView from "@/components/FlowView";
 import { usePolling, usePublicJson } from "@/lib/usePolling";
 import type {
   Account,
@@ -16,6 +17,7 @@ import type {
   PortfolioHistory,
   DecisionRecord,
   Evaluation,
+  FlowCache,
 } from "@/lib/types";
 import { usd, signedUsd, pct, pnlColor, num } from "@/lib/format";
 
@@ -34,7 +36,8 @@ export default function DashboardPage() {
   );
   const decisions = usePublicJson<DecisionRecord[]>("/decisions.json", REFRESH_MS);
   const evaluation = usePublicJson<Evaluation>("/evaluation.json", REFRESH_MS);
-  const [tab, setTab] = useState<"account" | "performance">("account");
+  const flow = usePublicJson<FlowCache>("/flow-cache.json", REFRESH_MS);
+  const [tab, setTab] = useState<"account" | "flow" | "performance">("account");
 
   // Join maps: orders -> by client_order_id (exact); positions -> most recent
   // open-mode entry per symbol.
@@ -135,23 +138,29 @@ export default function DashboardPage() {
 
       {/* Tabs */}
       <div className="mb-6 flex gap-1 border-b border-ink-700">
-        {(["account", "performance"] as const).map((t) => (
+        {([
+          ["account", "Account"],
+          ["flow", "Options Flow"],
+          ["performance", "Performance"],
+        ] as const).map(([t, label]) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium capitalize transition ${
+            className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium transition ${
               tab === t
                 ? "border-accent text-gray-100"
                 : "border-transparent text-gray-500 hover:text-gray-300"
             }`}
           >
-            {t}
+            {label}
           </button>
         ))}
       </div>
 
       {tab === "performance" ? (
         <PerformanceView ev={evaluation} />
+      ) : tab === "flow" ? (
+        <FlowView flow={flow} />
       ) : (
         <>
       {/* Stat cards */}

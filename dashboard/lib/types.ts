@@ -64,6 +64,55 @@ export interface DecisionRecord {
   alpaca_order_id: string | null;
 }
 
+/** Options-flow scan output (published to public/flow-cache.json by CI). */
+export interface FlowContract {
+  underlying: string;
+  symbol: string;
+  type: string;              // call | put
+  strike: number;
+  expiry: string;
+  dte: number;
+  contract_price: number;
+  volume: number;
+  open_interest: number;
+  vol_oi_ratio: number;
+  notional: number;
+  moneyness: number;
+  aggression: number | null;
+  is_spec_otm_call: boolean;
+  implied_volatility: number | null;
+  composite_score: number;
+}
+
+export interface FlowSignalRow {
+  ticker: string;
+  direction: string;         // bullish | bearish
+  composite_score: number;
+  top_contract: { symbol: string; type: string; strike: number; expiry: string };
+  vol_oi_ratio: number;
+  notional: number;
+  aggression: number | null;
+  call_put_notional_ratio: number;
+  iv: number | null;
+  rationale: string;
+}
+
+export interface FlowCache {
+  generated_at: string;
+  thresholds: {
+    MIN_CONTRACT_VOLUME: number;
+    MIN_VOL_OI_RATIO: number;
+    MIN_NOTIONAL_USD: number;
+    DTE_MIN: number;
+    DTE_MAX: number;
+    MONEYNESS_MAX: number;
+    AGGRESSION_BUY: number;
+    weights: Record<string, number>;
+  };
+  signals_ranked: FlowSignalRow[];
+  qualifying_contracts_ranked: FlowContract[];
+}
+
 export interface PortfolioHistory {
   timestamp: number[];
   equity: (number | null)[];

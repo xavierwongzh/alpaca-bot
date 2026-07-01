@@ -17,6 +17,18 @@ export function usd(v: string | number | null | undefined, dp = 2): string {
   });
 }
 
+/** Compact currency for large figures: $50.9M, $1.57M, $820K, $500. */
+export function compactUsd(v: string | number | null | undefined): string {
+  const n = num(v);
+  if (!Number.isFinite(n)) return "—";
+  const abs = Math.abs(n);
+  const sign = n < 0 ? "-" : "";
+  if (abs >= 1e9) return `${sign}$${(abs / 1e9).toFixed(2)}B`;
+  if (abs >= 1e6) return `${sign}$${(abs / 1e6).toFixed(2)}M`;
+  if (abs >= 1e3) return `${sign}$${Math.round(abs / 1e3)}K`;
+  return `${sign}$${Math.round(abs)}`;
+}
+
 export function signedUsd(v: string | number | null | undefined): string {
   const n = num(v);
   if (!Number.isFinite(n)) return "—";
