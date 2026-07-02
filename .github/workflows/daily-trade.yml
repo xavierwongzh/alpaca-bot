@@ -119,11 +119,26 @@ jobs:
           # Also persist the raw logs (cost + decisions + closed trades) and the
           # per-day run markers, which are git-ignored by default — force-add so
           # the record (and the idempotency marker the next slot reads) survives.
-          git add -f data/decisions/decisions.jsonl data/cost_log.csv data/closed_trades.jsonl data/evaluation/latest.json 2>/dev/null || true
+          git add -f data/decisions/decisions.jsonl data/decisions/exits.jsonl data/cost_log.csv data/closed_trades.jsonl data/evaluation/latest.json 2>/dev/null || true
           git add -f data/state/last_open_run.txt data/state/last_midday_run.txt 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "No artifact changes to commit."
           else
             git commit -m "chore: publish daily snapshot, flow cache + decisions [skip ci]"
-            git push
+            # Push resiliently. Redundant morning slots + occasional manual pushes
+            # can advance the remote between our checkout and push; a bare push
+            # would be rejected and the commit (incl. the idempotency marker) lost.
+            # Rebase onto the latest remote and retry so the publish always lands.
+            pushed=""
+            for i in 1 2 3 4 5; do
+              if git pull --rebase --autostash origin main && git push origin main; then
+                pushed="yes"; break
+              fi
+              echo "push attempt $i failed (remote advanced?); retrying after backoff..."
+              sleep 5
+            done
+            if [ -z "$pushed" ]; then
+              echo "::error::Failed to push published artifacts after 5 attempts."
+              exit 1
+            fi
           fi
