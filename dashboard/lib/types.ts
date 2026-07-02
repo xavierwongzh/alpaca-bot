@@ -177,6 +177,7 @@ export interface Evaluation {
     run_mode: BreakdownRow[];
     confidence_bucket: BreakdownRow[];
     sector: BreakdownRow[];
+    exit_reason?: BreakdownRow[];
   };
   calibration: CalibrationRow[];
 }

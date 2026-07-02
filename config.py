@@ -76,6 +76,31 @@ class MiddayConfig:
 
 
 # ---------------------------------------------------------------------------
+# Exit-management config
+#
+# The AI re-evaluates each open position's stop/target every run; the broker
+# enforces the live GTC OCO between runs. THESE are the code guardrails the AI
+# cannot override (all tunable here, nothing hardcoded).
+# ---------------------------------------------------------------------------
+@dataclass(frozen=True)
+class ExitConfig:
+    # Hard maximum-loss stop floor: a stop can never rest looser (lower for a
+    # long) than entry*(1+this). The AI cannot remove or widen beyond it.
+    hard_max_loss_pct: float = -0.08
+    # Unrealized gain at/above which MOVE_TO_BREAKEVEN is sensible (guidance to
+    # the model; the code still validates the resulting level).
+    breakeven_trigger_pct: float = 0.04
+    # Fraction of the position TAKE_PARTIAL scales out.
+    partial_exit_fraction: float = 0.5
+    # A TAKE_FULL exit of a position opened the SAME session needs at least this
+    # confidence (anti-churn: protect a same-day winner, don't flip out on noise).
+    same_day_full_exit_min_confidence: float = 0.80
+    # Sanity bound: a (raised) target must sit at least this far above the current
+    # price to be accepted.
+    min_target_gain_pct: float = 0.02
+
+
+# ---------------------------------------------------------------------------
 # OpenAI / model config
 # ---------------------------------------------------------------------------
 @dataclass(frozen=True)
@@ -226,6 +251,7 @@ class Paths:
     cost_log_csv: str = field(default="")
     decisions_dir: str = field(default="")
     decisions_jsonl: str = field(default="")
+    exits_jsonl: str = field(default="")
     closed_trades_jsonl: str = field(default="")
     evaluation_dir: str = field(default="")
     evaluation_latest_json: str = field(default="")
@@ -254,6 +280,7 @@ class Paths:
             cost_log_csv=os.path.join(data_dir, "cost_log.csv"),
             decisions_dir=decisions_dir,
             decisions_jsonl=os.path.join(decisions_dir, "decisions.jsonl"),
+            exits_jsonl=os.path.join(decisions_dir, "exits.jsonl"),
             closed_trades_jsonl=os.path.join(data_dir, "closed_trades.jsonl"),
             evaluation_dir=evaluation_dir,
             evaluation_latest_json=os.path.join(evaluation_dir, "latest.json"),
@@ -274,6 +301,7 @@ class Config:
     model: ModelConfig = field(default_factory=ModelConfig)
     cost: CostConfig = field(default_factory=CostConfig)
     midday: MiddayConfig = field(default_factory=MiddayConfig)
+    exits: ExitConfig = field(default_factory=ExitConfig)
     evaluation: EvalConfig = field(default_factory=EvalConfig)
     universe: UniverseConfig = field(default_factory=UniverseConfig)
     flow: FlowConfig = field(default_factory=FlowConfig)

@@ -225,6 +225,7 @@ export default function PerformanceView({ ev }: { ev: Evaluation | null }) {
           <BreakdownTable title="Run mode" rows={ev.breakdowns.run_mode} minSample={ev.min_sample} />
           <BreakdownTable title="Sector" rows={ev.breakdowns.sector} minSample={ev.min_sample} />
           <BreakdownTable title="Confidence bucket" rows={ev.breakdowns.confidence_bucket} minSample={ev.min_sample} />
+          <BreakdownTable title="Exit reason" rows={ev.breakdowns.exit_reason ?? []} minSample={ev.min_sample} />
         </div>
       </Section>
 

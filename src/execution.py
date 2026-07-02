@@ -120,6 +120,53 @@ def _open_sell_orders_by_symbol(broker: Broker) -> tuple[dict[str, list], list]:
     return by_sym, top
 
 
+def live_protection_by_symbol(broker: Broker) -> dict[str, dict]:
+    """
+    Current live protective levels per symbol, read from the open OCO sell legs:
+    {symbol: {"stop": float|None, "target": float|None}}. The stop leg carries
+    stop_price; the take-profit leg carries limit_price (and no stop_price).
+    """
+    by_sym, _ = _open_sell_orders_by_symbol(broker)
+    out: dict[str, dict] = {}
+    for sym, legs in by_sym.items():
+        stop = next((float(getattr(o, "stop_price")) for o in legs
+                     if getattr(o, "stop_price", None)), None)
+        target = next((float(getattr(o, "limit_price")) for o in legs
+                       if getattr(o, "limit_price", None) and not getattr(o, "stop_price", None)),
+                      None)
+        out[sym] = {"stop": stop, "target": target}
+    return out
+
+
+def cancel_protection(broker: Broker, symbol: str) -> None:
+    """Cancel all open SELL orders (OCO/bracket parents + legs) for one symbol."""
+    _, top_orders = _open_sell_orders_by_symbol(broker)
+    for o in top_orders:
+        if getattr(o, "symbol", None) == symbol and \
+           str(getattr(o, "side", "")).split(".")[-1].lower() == "sell":
+            try:
+                broker.client.cancel_order_by_id(str(o.id))
+            except Exception as e:  # noqa: BLE001
+                log.debug("Cancel protection failed for %s: %s", symbol, e)
+
+
+def market_sell(broker: Broker, symbol: str, qty: float,
+                coid: Optional[str] = None) -> tuple[bool, str, str]:
+    """Submit a plain market SELL to reduce/close a long. Returns (ok, order_id, error)."""
+    q = int(qty)
+    if q < 1:
+        return False, "", "qty < 1"
+    try:
+        req = MarketOrderRequest(
+            symbol=symbol, qty=q, side=OrderSide.SELL,
+            time_in_force=TimeInForce.DAY, client_order_id=coid or None,
+        )
+        o = broker.client.submit_order(req)
+        return True, str(getattr(o, "id", "")), ""
+    except Exception as e:  # noqa: BLE001
+        return False, "", str(e)
+
+
 def reconcile_protection(broker: Broker, cfg: Any, positions: list,
                          entries_by_symbol: dict[str, dict]) -> list[dict]:
     """

@@ -22,6 +22,13 @@ log = get_logger()
 
 VALID_ACTIONS = {"buy", "sell", "hold"}
 
+# Exit actions the AI may return per OPEN position. The code (src/exits.py)
+# validates every one against the guardrails before it touches the broker.
+VALID_EXIT_ACTIONS = {
+    "HOLD", "TIGHTEN_STOP", "MOVE_TO_BREAKEVEN",
+    "RAISE_TARGET", "TAKE_PARTIAL", "TAKE_FULL",
+}
+
 # JSON schema enforced by OpenAI structured outputs.
 DECISION_SCHEMA = {
     "type": "object",
@@ -47,9 +54,34 @@ DECISION_SCHEMA = {
                     "stop_pct", "target_pct", "confidence", "rationale",
                 ],
             },
-        }
+        },
+        # One exit action per OPEN position (position management).
+        "exit_actions": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "additionalProperties": False,
+                "properties": {
+                    "ticker": {"type": "string"},
+                    "action": {
+                        "type": "string",
+                        "enum": ["HOLD", "TIGHTEN_STOP", "MOVE_TO_BREAKEVEN",
+                                 "RAISE_TARGET", "TAKE_PARTIAL", "TAKE_FULL"],
+                    },
+                    # Absolute price levels (null when the action doesn't set one).
+                    "new_stop": {"type": ["number", "null"]},
+                    "new_target": {"type": ["number", "null"]},
+                    "confidence": {"type": "number"},
+                    "rationale": {"type": "string"},
+                },
+                "required": [
+                    "ticker", "action", "new_stop", "new_target",
+                    "confidence", "rationale",
+                ],
+            },
+        },
     },
-    "required": ["decisions"],
+    "required": ["decisions", "exit_actions"],
 }
 
 
@@ -72,6 +104,20 @@ class Decision:
         return self.__dict__.copy()
 
 
+@dataclass
+class ExitAction:
+    """The AI's proposed management action for one open position (pre-validation)."""
+    ticker: str
+    action: str                       # one of VALID_EXIT_ACTIONS
+    new_stop: Optional[float]
+    new_target: Optional[float]
+    confidence: float
+    rationale: str
+
+    def as_dict(self) -> dict[str, Any]:
+        return self.__dict__.copy()
+
+
 def _build_messages(
     portfolio: dict[str, Any],
     candidates: list[dict[str, Any]],
@@ -79,6 +125,8 @@ def _build_messages(
     market_summary: str,
     risk: RiskConfig,
     mode: str = "open",
+    positions_management: Optional[list[dict[str, Any]]] = None,
+    regime: Optional[dict[str, Any]] = None,
 ) -> list[dict[str, str]]:
     system = (
         "You are a disciplined swing-trading portfolio manager for a $10k PAPER "
@@ -99,7 +147,24 @@ def _build_messages(
         "- rationale: a short paragraph (2-4 sentences) explaining WHY this "
         "specific entry now — reference the flow signal and/or technicals, the "
         "catalyst, and the risk/reward. This is the explanation a human will read "
-        "later, so make it self-contained; no fluff."
+        "later, so make it self-contained; no fluff.\n\n"
+        "EXIT MANAGEMENT (exit_actions): return exactly ONE exit action for EACH "
+        "open position in open_positions (match by ticker). You manage the levels; "
+        "the broker keeps a live GTC stop+target resting between runs. Actions:\n"
+        "- HOLD: keep the current stop/target.\n"
+        "- TIGHTEN_STOP: raise the stop (set new_stop, ABSOLUTE price). A stop is a "
+        "one-way ratchet — it may only move UP, never down/wider; the code rejects "
+        "any loosening.\n"
+        "- MOVE_TO_BREAKEVEN: set the stop to the entry price (only valid when in profit).\n"
+        "- RAISE_TARGET: raise the take-profit (set new_target, ABSOLUTE price, above "
+        "current price and above the existing target).\n"
+        "- TAKE_PARTIAL: scale out part of the position now.\n"
+        "- TAKE_FULL: close the position now. NOTE: fully exiting a position opened "
+        "THIS SESSION requires high confidence; low-confidence same-day full exits "
+        "are rejected by the code, so only propose one on a strong signal.\n"
+        "- new_stop/new_target are ABSOLUTE dollar prices (not percentages); use null "
+        "when the action doesn't set that level. Never leave a position unprotected — "
+        "the code guarantees a hard max-loss stop regardless."
     )
     if mode == "midday":
         system += (
@@ -123,7 +188,11 @@ def _build_messages(
             "default_target_pct": risk.profit_target_pct,
         },
         "market_summary": market_summary,
+        "regime": regime or {},
         "current_portfolio": portfolio,
+        # Per-open-position management context (entry, current, uP&L, holding
+        # days, current live stop/target, fresh signal) -> drives exit_actions.
+        "open_positions": positions_management or [],
         "candidates": candidates,
         "flow_signals": flow_signals,
     }
@@ -171,6 +240,39 @@ def _validate(raw: dict[str, Any], risk: RiskConfig) -> list[Decision]:
     return decisions
 
 
+def _validate_exit_actions(raw: dict[str, Any]) -> list[ExitAction]:
+    """Coerce/validate the exit_actions array; drop malformed entries."""
+    out: list[ExitAction] = []
+    for e in raw.get("exit_actions", []):
+        try:
+            ticker = str(e["ticker"]).upper().strip()
+            action = str(e["action"]).upper().strip()
+            if not ticker or action not in VALID_EXIT_ACTIONS:
+                continue
+
+            def _num(v):
+                if v is None:
+                    return None
+                try:
+                    return float(v)
+                except (TypeError, ValueError):
+                    return None
+
+            conf = float(e.get("confidence", 0.0))
+            conf = max(0.0, min(conf, 1.0))
+            out.append(ExitAction(
+                ticker=ticker,
+                action=action,
+                new_stop=_num(e.get("new_stop")),
+                new_target=_num(e.get("new_target")),
+                confidence=conf,
+                rationale=str(e.get("rationale", "")).strip(),
+            ))
+        except (KeyError, ValueError, TypeError) as ex:
+            log.warning("Dropping malformed exit action %s: %s", e, ex)
+    return out
+
+
 def _is_reasoning_model(model: str) -> bool:
     """GPT-5 / o-series are reasoning models with different param support."""
     m = model.lower()
@@ -215,12 +317,16 @@ def get_decisions(
     market_summary: str,
     mode: str = "open",
     cost_cfg: Optional[CostConfig] = None,
-) -> tuple[list[Decision], Optional["Usage"]]:
+    positions_management: Optional[list[dict[str, Any]]] = None,
+    regime: Optional[dict[str, Any]] = None,
+) -> tuple[list[Decision], list[ExitAction], Optional["Usage"]]:
     """
-    Single batched decision call with one retry.
+    Single batched decision call with one retry — returns BOTH new-entry decisions
+    and per-position exit actions (position management folded into the same call,
+    no extra round-trip).
 
-    Returns (decisions, usage). `usage` is the priced token accounting for the
-    successful call (or None on total failure / no cost config).
+    Returns (decisions, exit_actions, usage). `usage` is the priced token
+    accounting for the successful call (or None on total failure / no cost config).
 
     Prompt-caching note: the static system prompt + JSON schema come FIRST and are
     identical across runs of a given mode, so OpenAI prompt caching can serve that
@@ -231,7 +337,8 @@ def get_decisions(
     from src.cost import extract_usage
 
     client = OpenAI(api_key=secrets.openai_api_key)
-    messages = _build_messages(portfolio, candidates, flow_signals, market_summary, risk, mode)
+    messages = _build_messages(portfolio, candidates, flow_signals, market_summary,
+                               risk, mode, positions_management, regime)
     params = _build_request_params(model_cfg, messages)
 
     attempts = model_cfg.max_retries + 1
@@ -241,12 +348,14 @@ def get_decisions(
             resp = client.chat.completions.create(**params)
             raw = json.loads(resp.choices[0].message.content)
             decisions = _validate(raw, risk)
-            log.info("Decision call ok (attempt %d): %d decisions", attempt, len(decisions))
+            exit_actions = _validate_exit_actions(raw)
+            log.info("Decision call ok (attempt %d): %d decisions, %d exit actions",
+                     attempt, len(decisions), len(exit_actions))
             usage = extract_usage(resp, "decision", model_cfg.decision_model, cost_cfg) if cost_cfg else None
-            return decisions, usage
+            return decisions, exit_actions, usage
         except Exception as e:  # noqa: BLE001
             last_err = e
             log.warning("Decision call attempt %d failed: %s", attempt, e)
 
     log.error("Decision engine failed after %d attempts: %s", attempts, last_err)
-    return [], None
+    return [], [], None

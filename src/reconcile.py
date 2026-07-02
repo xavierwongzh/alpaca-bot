@@ -104,6 +104,59 @@ def latest_entry_by_symbol(decisions_jsonl: str) -> dict[str, dict]:
     return out
 
 
+def _parse_dt(v: Any) -> Optional[datetime]:
+    if isinstance(v, datetime):
+        return v
+    if isinstance(v, str):
+        try:
+            return datetime.fromisoformat(v.replace("Z", "+00:00"))
+        except ValueError:
+            return None
+    return None
+
+
+def _load_exit_history(path: str) -> dict[str, list[dict]]:
+    """symbol -> list of exit-action records (from data/decisions/exits.jsonl)."""
+    hist: dict[str, list[dict]] = {}
+    if not os.path.exists(path):
+        return hist
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            sym = str(r.get("ticker", "")).upper()
+            if sym:
+                hist.setdefault(sym, []).append(r)
+    return hist
+
+
+def _exit_actions_in_window(
+    hist: dict[str, list[dict]], symbol: str, entry_time: Any, exit_time: Any,
+) -> list[dict]:
+    """Compact exit-action history for a symbol between its entry and exit times."""
+    ed, xd = _parse_dt(entry_time), _parse_dt(exit_time)
+    out: list[dict] = []
+    for r in hist.get(symbol, []):
+        adt = _parse_dt(r.get("timestamp"))
+        if adt is None or (ed and adt < ed) or (xd and adt > xd):
+            continue
+        out.append({
+            "timestamp": r.get("timestamp"),
+            "mode": r.get("mode"),
+            "action": r.get("action"),
+            "new_stop": r.get("new_stop"),
+            "new_target": r.get("new_target"),
+            "confidence": r.get("confidence"),
+            "applied": r.get("applied"),
+        })
+    return out
+
+
 def _existing_keys(path: str) -> set[str]:
     keys: set[str] = set()
     if not os.path.exists(path):
@@ -130,6 +183,7 @@ def reconcile_closed_trades(broker: Broker, paths: Any) -> list[dict[str, Any]]:
         return []
 
     by_order, by_coid = _load_decision_maps(paths.decisions_jsonl)
+    exit_history = _load_exit_history(getattr(paths, "exits_jsonl", ""))
     existing = _existing_keys(paths.closed_trades_jsonl)
 
     open_lots: dict[str, deque] = {}
@@ -197,6 +251,10 @@ def reconcile_closed_trades(broker: Broker, paths: Any) -> list[dict[str, Any]]:
                     "exit_time": when.isoformat() if when else None,
                     "holding_days": holding_days,
                     "exit_reason": reason,
+                    # AI exit-action history over this trade's holding window, so we
+                    # can compare AI-managed exits vs a plain mechanical trailing stop.
+                    "exit_actions": _exit_actions_in_window(
+                        exit_history, symbol, lot["time"], when),
                     # tags carried from the decision record
                     "signal_type": signal_type,
                     "run_mode": (rec or {}).get("mode", "unknown"),

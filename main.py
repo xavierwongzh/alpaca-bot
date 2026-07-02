@@ -31,7 +31,8 @@ from src.cost import write_cost_log
 from src.dashboard import console, render_dashboard
 from src.decision import get_decisions
 from src.evaluation import run_evaluation
-from src.execution import place_orders, reconcile_protection
+from src.execution import place_orders, reconcile_protection, live_protection_by_symbol
+from src.exits import PositionSnapshot, resolve_all, apply_exits, append_exit_records
 from src.flow import bullish_tickers, scan_flow
 from src.logger import get_logger, init_trade_log, log_trade_event, write_snapshot
 from src.market_data import MarketData
@@ -149,6 +150,11 @@ def main() -> int:
     # --- 3. portfolio analytics (Layer 2) ---
     portfolio = build_portfolio_view(account, raw_positions, cfg.risk)
 
+    # Live protective levels + position ages feed BOTH the exit management context
+    # (below) and the midday same-day guard. Read once here.
+    live_levels = live_protection_by_symbol(broker)
+    position_age_days = broker.get_position_age_days()
+
     # --- 4. context (Layer 3) ---
     macro = get_macro_context()
     summary_usage = None
@@ -180,10 +186,34 @@ def main() -> int:
             item["flow_signal"] = flow_by_ticker[t]
         candidate_payload.append(item)
 
+    # Regime read (VIX + SPY trend) and per-open-position management context, so
+    # the AI can re-evaluate each position's stop/target in the SAME batched call.
+    regime = {
+        "vix": macro.vix, "vix_change_5d": macro.vix_change_5d, "regime": macro.regime,
+        "spy": tech["SPY"].as_dict() if "SPY" in tech else None,
+    }
+    positions_management = []
+    for p in portfolio.positions:
+        lv = live_levels.get(p.ticker, {})
+        positions_management.append({
+            "ticker": p.ticker,
+            "entry_price": p.avg_entry,
+            "current_price": p.last_price,
+            "unrealized_pl": round(p.unrealized_pl, 2),
+            "unrealized_pl_pct": round(p.unrealized_pl_pct, 4),
+            "holding_days": position_age_days.get(p.ticker),
+            "current_stop": lv.get("stop"),
+            "current_target": lv.get("target"),
+            "weight": p.weight,
+            "flow_signal": flow_by_ticker.get(p.ticker),
+            "technicals": tech[p.ticker].as_dict() if p.ticker in tech else {},
+        })
+
     decisions = []
+    exit_actions = []
     decision_usage = None
     if not args.no_llm:
-        decisions, decision_usage = get_decisions(
+        decisions, exit_actions, decision_usage = get_decisions(
             secrets, cfg.model, cfg.risk,
             portfolio=portfolio.as_dict(),
             candidates=candidate_payload,
@@ -191,12 +221,13 @@ def main() -> int:
             market_summary=market_summary,
             mode=mode,
             cost_cfg=cfg.cost,
+            positions_management=positions_management,
+            regime=regime,
         )
 
     # Midday: enforce the conservative policy IN CODE before sizing/execution.
     midday_dropped = []
     if mode == "midday":
-        position_age_days = broker.get_position_age_days()
         ages = {t: position_age_days.get(t) for t in held_tickers}
         decisions, midday_dropped = apply_midday_filter(
             decisions,
@@ -207,15 +238,43 @@ def main() -> int:
         )
         log.info("Midday filter: %d decisions kept, %d dropped", len(decisions), len(midday_dropped))
 
-    sized, rejected = size_and_validate(
-        decisions, portfolio, last_prices, account.buying_power, cfg.risk, halt
-    )
-    rejected = list(rejected) + midday_dropped
-
     # Submit only when not a dry-run AND the market is open. Otherwise skip
     # cleanly, labelling why ("dry_run" vs "market_closed").
     place_live = (not dry_run) and market_open
     skip_detail = "dry_run" if dry_run else ("market_closed" if not market_open else "dry_run")
+
+    # --- exit management: the AI adjusts each position's stop/target; the broker
+    # enforces the result. Code guardrails (ratchet, hard max-loss, sanity,
+    # same-day churn) are applied in resolve_all before anything touches the
+    # broker. Position EXITS go through here, not the entry path. ---
+    exit_snaps = [
+        PositionSnapshot(
+            ticker=p.ticker, qty=int(p.qty), entry=p.avg_entry, current_price=p.last_price,
+            current_stop=live_levels.get(p.ticker, {}).get("stop"),
+            current_target=live_levels.get(p.ticker, {}).get("target"),
+            age_days=position_age_days.get(p.ticker),
+        )
+        for p in portfolio.positions
+    ]
+    exit_resolutions = resolve_all(exit_snaps, exit_actions, cfg.risk, cfg.exits)
+    exit_records = apply_exits(broker, exit_resolutions, mode=mode, regime=regime,
+                               dry_run=not place_live)
+    if exit_records:
+        append_exit_records(cfg.paths.exits_jsonl, exit_records)
+
+    # Entries (buy/hold only): position exits are handled by exit_actions above,
+    # so any 'sell' the model still emitted is ignored in the entry path.
+    entry_decisions = [d for d in decisions if d.action != "sell"]
+    sells_ignored = len(decisions) - len(entry_decisions)
+    if sells_ignored:
+        log.info("Ignoring %d 'sell' decision(s) in entries (exits handled by exit_actions).",
+                 sells_ignored)
+
+    sized, rejected = size_and_validate(
+        entry_decisions, portfolio, last_prices, account.buying_power, cfg.risk, halt
+    )
+    rejected = list(rejected) + midday_dropped
+
     exec_results = place_orders(broker, sized, cfg.paths, dry_run=not place_live,
                                 mode=mode, skip_detail=skip_detail)
 
@@ -266,6 +325,8 @@ def main() -> int:
         "flow_signals": [s.as_dict() for s in flow],
         "decisions": [d.as_dict() for d in decisions],
         "decision_records": decision_records,
+        "exit_actions": [e.as_dict() for e in exit_actions],
+        "exit_records": exit_records,
         "cost": cost_row,
         "usage": {
             "decision": decision_usage.as_dict() if decision_usage else None,

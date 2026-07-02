@@ -104,6 +104,9 @@ def compute_breakdowns(trades: list[dict[str, Any]], min_sample: int) -> dict[st
         "run_mode": lambda t: t.get("run_mode", "unknown"),
         "confidence_bucket": lambda t: confidence_bucket(t.get("confidence")),
         "sector": lambda t: t.get("sector", "Unknown"),
+        # How the trade actually closed (target/stop/manual) — lets us compare
+        # AI-managed exits against a plain mechanical stop over time.
+        "exit_reason": lambda t: t.get("exit_reason", "unknown"),
     }
     out: dict[str, list[dict]] = {}
     for dim, keyfn in dims.items():
